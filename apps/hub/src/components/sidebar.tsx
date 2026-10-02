@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { BookOpen, Building2, CalendarClock, Flag, Gem, Globe, Images, LayoutDashboard, Menu, Package, UserCog, Users, X, type LucideIcon } from 'lucide-react';
+import { BookOpen, Building2, CalendarClock, ClipboardCheck, Flag, Gem, Globe, Images, LayoutDashboard, Menu, Package, UserCog, Users, X, type LucideIcon } from 'lucide-react';
 import { cx } from './ui';
 
 type Item = { href: string; label: string; icon: LucideIcon; ready?: boolean; adminOrEditor?: boolean };
@@ -12,7 +12,7 @@ const SECTIONS: { label: string; items: Item[] }[] = [
     label: 'Văn hóa',
     items: [
       { href: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard, ready: true },
-      { href: 'timeline', label: 'Culture Timeline', icon: CalendarClock },
+      { href: 'timeline', label: 'Culture Timeline', icon: CalendarClock, ready: true },
       { href: 'stories', label: 'Câu chuyện', icon: BookOpen, ready: true },
       { href: 'events', label: 'Sự kiện', icon: Flag, ready: true },
       { href: 'people', label: 'Con người', icon: Users, ready: true },
@@ -24,6 +24,7 @@ const SECTIONS: { label: string; items: Item[] }[] = [
   {
     label: 'Quản trị',
     items: [
+      { href: 'review', label: 'Chờ duyệt', icon: ClipboardCheck, ready: true, adminOrEditor: true },
       { href: 'atlas', label: 'Culture Atlas', icon: Globe, ready: true, adminOrEditor: true },
       { href: 'settings/profile', label: 'Hồ sơ doanh nghiệp', icon: Building2, ready: true },
       { href: 'settings/members', label: 'Thành viên', icon: UserCog, ready: true, adminOrEditor: true },
