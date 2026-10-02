@@ -1,0 +1,5 @@
+{
+  "name": "@nexture/config",
+  "private": true,
+  "exports": { "./tokens.css": "./tokens.css" }
+}

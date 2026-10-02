@@ -1,0 +1,1744 @@
+openapi: 3.1.0
+info:
+  title: NexTure Hub API
+  version: 1.0.0
+  description: |
+    API nội bộ của app Hub. Base URL: `https://hub.<domain>/api/v1`.
+    Xác thực bằng cookie phiên của Better Auth (`/api/auth/*`, không mô tả ở đây).
+    Quy ước chung, mã lỗi, phân trang: xem `05-api-ghi-chu.md`.
+    Quyền: xem `03-phan-quyen.md`. Trạng thái: xem `04-trang-thai.md`.
+servers:
+  - url: /api/v1
+security:
+  - sessionCookie: []
+
+tags:
+  - name: me
+  - name: organizations
+  - name: members
+  - name: invites
+  - name: content
+  - name: workflow
+  - name: values
+  - name: media
+  - name: views
+  - name: atlas
+  - name: nexture-admin
+
+paths:
+  # ------------------------------------------------------------------ me
+  /me:
+    get:
+      tags: [me]
+      summary: Người dùng hiện tại và các tổ chức của họ
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        '401': { $ref: '#/components/responses/Error' }
+
+  # ------------------------------------------------------- organizations
+  /orgs:
+    post:
+      tags: [organizations]
+      summary: Tạo tổ chức. Người gọi trở thành ADMIN.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrgInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Organization' }
+        '409': { $ref: '#/components/responses/Error' }   # SLUG_TAKEN
+        '422': { $ref: '#/components/responses/Error' }
+
+  /orgs/slug-availability:
+    get:
+      tags: [organizations]
+      summary: Kiểm tra slug còn trống
+      parameters:
+        - { name: slug, in: query, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [available, suggestion]
+                properties:
+                  available: { type: boolean }
+                  suggestion: { type: string, description: 'Slug trống gần nhất nếu bị trùng' }
+
+  /orgs/{orgId}:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [organizations]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Organization' }
+        '404': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [organizations]
+      summary: Sửa hồ sơ tổ chức (ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateOrgInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Organization' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }   # VERSION_CONFLICT, SLUG_TAKEN, SLUG_LOCKED
+        '422': { $ref: '#/components/responses/Error' }   # ATLAS_PROFILE_INCOMPLETE
+
+  # ------------------------------------------------------------- members
+  /orgs/{orgId}/members:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [members]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Member' } }
+
+  /orgs/{orgId}/members/{userId}:
+    parameters:
+      - { $ref: '#/components/parameters/orgId' }
+      - { name: userId, in: path, required: true, schema: { type: string } }
+    patch:
+      tags: [members]
+      summary: Đổi vai trò (ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { $ref: '#/components/schemas/OrgRole' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Member' }
+        '409': { $ref: '#/components/responses/Error' }   # LAST_ADMIN
+    delete:
+      tags: [members]
+      summary: Xóa thành viên (ADMIN) hoặc tự rời (userId = chính mình)
+      responses:
+        '204': { description: Deleted }
+        '409': { $ref: '#/components/responses/Error' }   # LAST_ADMIN
+
+  # ------------------------------------------------------------- invites
+  /orgs/{orgId}/invites:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [invites]
+      summary: Lời mời còn hiệu lực (chưa nhận, chưa thu hồi, chưa hết hạn)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Invite' } }
+    post:
+      tags: [invites]
+      summary: Tạo lời mời (ADMIN). Trả link đầy đủ đúng một lần.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { $ref: '#/components/schemas/OrgRole' }
+                email: { type: [string, 'null'], format: email }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Invite'
+                  - type: object
+                    required: [url]
+                    properties:
+                      url: { type: string, description: '{HUB_BASE_URL}/invite/{token}' }
+
+  /orgs/{orgId}/invites/{inviteId}:
+    parameters:
+      - { $ref: '#/components/parameters/orgId' }
+      - { name: inviteId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [invites]
+      summary: Thu hồi lời mời (ADMIN)
+      responses:
+        '204': { description: Revoked }
+
+  /invites/{token}:
+    parameters:
+      - { name: token, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [invites]
+      summary: Xem thông tin lời mời (không cần đăng nhập)
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [organizationName, role, emailRestricted]
+                properties:
+                  organizationName: { type: string }
+                  organizationLogoUrl: { type: [string, 'null'] }
+                  role: { $ref: '#/components/schemas/OrgRole' }
+                  emailRestricted: { type: boolean }
+        '410': { $ref: '#/components/responses/Error' }   # INVITE_INVALID (hết hạn/thu hồi/đã dùng/không tồn tại)
+  /invites/{token}/accept:
+    parameters:
+      - { name: token, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [invites]
+      summary: Nhận lời mời (cần đăng nhập)
+      responses:
+        '200':
+          description: Joined
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [orgId]
+                properties:
+                  orgId: { type: string, format: uuid }
+        '403': { $ref: '#/components/responses/Error' }   # INVITE_EMAIL_MISMATCH
+        '409': { $ref: '#/components/responses/Error' }   # ALREADY_MEMBER
+        '410': { $ref: '#/components/responses/Error' }   # INVITE_INVALID
+
+  # ------------------------------------------------------------- content
+  /orgs/{orgId}/stories:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [content]
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/q'
+        - $ref: '#/components/parameters/statusFilter'
+        - $ref: '#/components/parameters/visibilityFilter'
+        - $ref: '#/components/parameters/publicStateFilter'
+        - { name: storyType, in: query, schema: { $ref: '#/components/schemas/StoryType' } }
+        - $ref: '#/components/parameters/relatedPersonId'
+        - $ref: '#/components/parameters/relatedValueId'
+        - { name: sort, in: query, schema: { type: string, enum: [updated_desc, date_asc, date_desc, title_asc], default: updated_desc } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/EntitySummary' } }
+    post:
+      tags: [content]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StoryInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Story' }
+        '422': { $ref: '#/components/responses/Error' }
+  /orgs/{orgId}/stories/{id}:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/id' } ]
+    get:
+      tags: [content]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Story' }
+        '404': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [content]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/VersionedPatch'
+                - $ref: '#/components/schemas/StoryPatch'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Story' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [content]
+      responses:
+        '204': { description: Soft-deleted }
+
+  /orgs/{orgId}/events:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [content]
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/q'
+        - $ref: '#/components/parameters/statusFilter'
+        - $ref: '#/components/parameters/visibilityFilter'
+        - $ref: '#/components/parameters/publicStateFilter'
+        - { name: eventType, in: query, schema: { $ref: '#/components/schemas/EventType' } }
+        - $ref: '#/components/parameters/relatedPersonId'
+        - $ref: '#/components/parameters/relatedValueId'
+        - { name: fromYear, in: query, schema: { type: integer } }
+        - { name: toYear, in: query, schema: { type: integer } }
+        - { name: sort, in: query, schema: { type: string, enum: [date_asc, date_desc, updated_desc, title_asc], default: date_asc } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/EntitySummary' } }
+    post:
+      tags: [content]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+  /orgs/{orgId}/events/{id}:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/id' } ]
+    get:
+      tags: [content]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+    patch:
+      tags: [content]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/VersionedPatch'
+                - $ref: '#/components/schemas/EventPatch'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+    delete:
+      tags: [content]
+      responses:
+        '204': { description: Soft-deleted }
+
+  /orgs/{orgId}/people:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [content]
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/q'
+        - $ref: '#/components/parameters/statusFilter'
+        - $ref: '#/components/parameters/visibilityFilter'
+        - $ref: '#/components/parameters/publicStateFilter'
+        - { name: isFounder, in: query, schema: { type: boolean } }
+        - { name: sort, in: query, schema: { type: string, enum: [name_asc, updated_desc, joined_asc], default: name_asc } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/EntitySummary' } }
+    post:
+      tags: [content]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PersonInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Person' }
+  /orgs/{orgId}/people/{id}:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/id' } ]
+    get:
+      tags: [content]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Person' }
+    patch:
+      tags: [content]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/VersionedPatch'
+                - $ref: '#/components/schemas/PersonPatch'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Person' }
+    delete:
+      tags: [content]
+      responses:
+        '204': { description: Soft-deleted }
+
+  /orgs/{orgId}/products:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [content]
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/q'
+        - $ref: '#/components/parameters/statusFilter'
+        - $ref: '#/components/parameters/visibilityFilter'
+        - $ref: '#/components/parameters/publicStateFilter'
+        - { name: kind, in: query, schema: { $ref: '#/components/schemas/PPKind' } }
+        - $ref: '#/components/parameters/relatedPersonId'
+        - { name: sort, in: query, schema: { type: string, enum: [updated_desc, date_desc, title_asc], default: updated_desc } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/EntitySummary' } }
+    post:
+      tags: [content]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+  /orgs/{orgId}/products/{id}:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/id' } ]
+    get:
+      tags: [content]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+    patch:
+      tags: [content]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/VersionedPatch'
+                - $ref: '#/components/schemas/ProductPatch'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+    delete:
+      tags: [content]
+      responses:
+        '204': { description: Soft-deleted }
+
+  # ------------------------------------------------------------ workflow
+  # Dùng chung cho stories | events | people | products | media.
+  # Response là bản ghi đầy đủ của loại tương ứng (Story | Event | Person | Product | Media).
+  /orgs/{orgId}/{collection}/{id}/submit:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/workflowCollection' }, { $ref: '#/components/parameters/id' } ]
+    post:
+      tags: [workflow]
+      requestBody: { $ref: '#/components/requestBodies/VersionOnly' }
+      responses:
+        '200': { $ref: '#/components/responses/AnyRecord' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }   # REQUIRED_FOR_REVIEW
+  /orgs/{orgId}/{collection}/{id}/withdraw:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/workflowCollection' }, { $ref: '#/components/parameters/id' } ]
+    post:
+      tags: [workflow]
+      requestBody: { $ref: '#/components/requestBodies/VersionOnly' }
+      responses:
+        '200': { $ref: '#/components/responses/AnyRecord' }
+  /orgs/{orgId}/{collection}/{id}/approve:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/workflowCollection' }, { $ref: '#/components/parameters/id' } ]
+    post:
+      tags: [workflow]
+      requestBody: { $ref: '#/components/requestBodies/VersionOnly' }
+      responses:
+        '200': { $ref: '#/components/responses/AnyRecord' }
+  /orgs/{orgId}/{collection}/{id}/return:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/workflowCollection' }, { $ref: '#/components/parameters/id' } ]
+    post:
+      tags: [workflow]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, note]
+              properties:
+                version: { type: integer }
+                note: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        '200': { $ref: '#/components/responses/AnyRecord' }
+  /orgs/{orgId}/{collection}/{id}/unverify:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/workflowCollection' }, { $ref: '#/components/parameters/id' } ]
+    post:
+      tags: [workflow]
+      requestBody: { $ref: '#/components/requestBodies/VersionOnly' }
+      responses:
+        '200': { $ref: '#/components/responses/AnyRecord' }
+  /orgs/{orgId}/{collection}/{id}/visibility:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/workflowCollection' }, { $ref: '#/components/parameters/id' } ]
+    put:
+      tags: [workflow]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, visibility]
+              properties:
+                version: { type: integer }
+                visibility: { $ref: '#/components/schemas/Visibility' }
+      responses:
+        '200': { $ref: '#/components/responses/AnyRecord' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }   # NOT_VERIFIED, VERSION_CONFLICT
+
+  # Chỉ cho stories | events | people | products
+  /orgs/{orgId}/{collection}/{id}/relations:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/contentCollection' }, { $ref: '#/components/parameters/id' } ]
+    put:
+      tags: [workflow]
+      summary: Thay toàn bộ quan hệ của nội dung với MỘT loại đích
+      description: |
+        Server so sánh với tập hiện tại, thêm/xóa phần chênh lệch, tự xác định relationship_type
+        và chiều theo bảng `02-database-ghi-chu.md` §6. Không tăng version của nội dung.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetType, ids]
+              properties:
+                targetType: { $ref: '#/components/schemas/EntityType' }
+                ids: { type: array, maxItems: 100, uniqueItems: true, items: { type: string, format: uuid } }
+      responses:
+        '200': { $ref: '#/components/responses/AnyRecord' }
+        '422': { $ref: '#/components/responses/Error' }   # INVALID_RELATION
+  /orgs/{orgId}/{collection}/{id}/media:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/contentCollection' }, { $ref: '#/components/parameters/id' } ]
+    put:
+      tags: [workflow]
+      summary: Thay toàn bộ danh sách ảnh/video gắn kèm (thứ tự = thứ tự mảng)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [mediaId]
+                    properties:
+                      mediaId: { type: string, format: uuid }
+                      caption: { type: [string, 'null'], maxLength: 300 }
+      responses:
+        '200': { $ref: '#/components/responses/AnyRecord' }
+        '422': { $ref: '#/components/responses/Error' }   # MEDIA_NOT_READY, MEDIA_KIND_INVALID
+  /orgs/{orgId}/{collection}/{id}/sources:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/contentCollection' }, { $ref: '#/components/parameters/id' } ]
+    post:
+      tags: [workflow]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SourceInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Source' }
+  /orgs/{orgId}/{collection}/{id}/sources/{sourceId}:
+    parameters:
+      - { $ref: '#/components/parameters/orgId' }
+      - { $ref: '#/components/parameters/contentCollection' }
+      - { $ref: '#/components/parameters/id' }
+      - { name: sourceId, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [workflow]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string, minLength: 1, maxLength: 300 }
+                note: { type: [string, 'null'], maxLength: 1000 }
+                isPublic: { type: boolean }
+                sortOrder: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Source' }
+    delete:
+      tags: [workflow]
+      responses:
+        '204': { description: Removed }
+  /orgs/{orgId}/{collection}/{id}/public-preview:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/contentCollection' }, { $ref: '#/components/parameters/id' } ]
+    get:
+      tags: [workflow]
+      summary: Dữ liệu công khai nếu nội dung được bật PUBLIC (Admin, Editor)
+      description: |
+        Trả đúng cấu trúc sẽ được ghi vào atlas.entities (xem 08-cong-khai.md §3),
+        dựng từ dữ liệu hiện tại, kể cả khi nội dung chưa VERIFIED. Quan hệ chỉ gồm
+        nội dung liên quan đang LIVE. Không ghi gì vào database.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicPreview' }
+
+  # -------------------------------------------------------------- values
+  /orgs/{orgId}/values:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [values]
+      summary: Toàn bộ giá trị văn hóa, theo sort_order
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/CultureValue' } }
+    post:
+      tags: [values]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CultureValueInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CultureValue' }
+        '409': { $ref: '#/components/responses/Error' }   # VALUE_NAME_TAKEN
+  /orgs/{orgId}/values/order:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    put:
+      tags: [values]
+      summary: Sắp xếp lại (mảng phải chứa đủ id hiện có)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids: { type: array, items: { type: string, format: uuid } }
+      responses:
+        '204': { description: OK }
+  /orgs/{orgId}/values/{id}:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/id' } ]
+    patch:
+      tags: [values]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/VersionedPatch'
+                - $ref: '#/components/schemas/CultureValuePatch'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CultureValue' }
+    delete:
+      tags: [values]
+      responses:
+        '204': { description: Soft-deleted }
+
+  # --------------------------------------------------------------- media
+  /orgs/{orgId}/media:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [media]
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/q'
+        - $ref: '#/components/parameters/statusFilter'
+        - $ref: '#/components/parameters/visibilityFilter'
+        - $ref: '#/components/parameters/publicStateFilter'
+        - { name: kind, in: query, schema: { $ref: '#/components/schemas/MediaKind' } }
+        - { name: tag, in: query, schema: { type: string } }
+        - { name: sort, in: query, schema: { type: string, enum: [created_desc, title_asc, occurred_asc], default: created_desc } }
+      responses:
+        '200':
+          description: OK (chỉ upload_status READY)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/Media' } }
+  /orgs/{orgId}/media/upload-url:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    post:
+      tags: [media]
+      summary: Bước 1 upload. Tạo bản ghi PENDING và trả presigned PUT URL (hết hạn 15 phút).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filename, mimeType, sizeBytes]
+              properties:
+                filename: { type: string, maxLength: 255 }
+                mimeType: { type: string }
+                sizeBytes: { type: integer, minimum: 1 }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [mediaId, uploadUrl, headers]
+                properties:
+                  mediaId: { type: string, format: uuid }
+                  uploadUrl: { type: string }
+                  headers:
+                    type: object
+                    description: Header client PHẢI gửi kèm PUT (Content-Type)
+                    additionalProperties: { type: string }
+        '422': { $ref: '#/components/responses/Error' }   # FILE_TYPE_NOT_ALLOWED, FILE_TOO_LARGE
+  /orgs/{orgId}/media/{id}/complete:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/id' } ]
+    post:
+      tags: [media]
+      summary: Bước 3 upload. Xác nhận file đã lên R2, điền metadata.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/MediaMetaInput'
+                - type: object
+                  properties:
+                    width: { type: [integer, 'null'] }
+                    height: { type: [integer, 'null'] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Media' }
+        '422': { $ref: '#/components/responses/Error' }   # UPLOAD_MISMATCH
+  /orgs/{orgId}/media/{id}:
+    parameters: [ { $ref: '#/components/parameters/orgId' }, { $ref: '#/components/parameters/id' } ]
+    get:
+      tags: [media]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MediaDetail' }
+    patch:
+      tags: [media]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/VersionedPatch'
+                - $ref: '#/components/schemas/MediaMetaInput'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Media' }
+    delete:
+      tags: [media]
+      responses:
+        '204': { description: Soft-deleted }
+        '409': { $ref: '#/components/responses/Error' }   # MEDIA_IN_USE
+
+  # --------------------------------------------------------------- views
+  /orgs/{orgId}/dashboard:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [views]
+      responses:
+        '200':
+          description: OK (số liệu đã áp bộ lọc hiển thị theo vai trò)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dashboard' }
+  /orgs/{orgId}/timeline:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [views]
+      summary: Toàn bộ Event (không phân trang), sắp start_date tăng dần
+      parameters:
+        - { name: includeUnverified, in: query, schema: { type: boolean, default: false }, description: 'Bị bỏ qua với VIEWER' }
+        - { name: eventType, in: query, schema: { $ref: '#/components/schemas/EventType' } }
+        - { name: personId, in: query, schema: { type: string, format: uuid } }
+        - { name: valueId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [years]
+                properties:
+                  years:
+                    type: array
+                    items:
+                      type: object
+                      required: [year, items]
+                      properties:
+                        year: { type: integer }
+                        items: { type: array, items: { $ref: '#/components/schemas/EntitySummary' } }
+  /orgs/{orgId}/search:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [views]
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, maxLength: 100 } }
+        - { name: types, in: query, style: form, explode: false, schema: { type: array, items: { type: string, enum: [STORY, EVENT, PERSON, PRODUCT_PROJECT, MEDIA] } } }
+        - $ref: '#/components/parameters/statusFilter'
+        - { name: personId, in: query, schema: { type: string, format: uuid } }
+        - { name: fromYear, in: query, schema: { type: integer } }
+        - { name: toYear, in: query, schema: { type: integer } }
+      responses:
+        '200':
+          description: OK (tối đa 20 kết quả mỗi loại)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [groups]
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      type: object
+                      required: [type, total, items]
+                      properties:
+                        type: { type: string }
+                        total: { type: integer }
+                        items: { type: array, items: { $ref: '#/components/schemas/EntitySummary' } }
+  /orgs/{orgId}/review-queue:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [views]
+      summary: Mọi bản ghi PENDING_REVIEW (nội dung + tư liệu), cũ nhất trước. ADMIN, EDITOR.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/EntitySummary' } }
+  /orgs/{orgId}/activity:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [views]
+      summary: Nhật ký (ADMIN). Dashboard dùng limit=10.
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/ActivityLog' } }
+
+  # --------------------------------------------------------------- atlas
+  /orgs/{orgId}/atlas:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [atlas]
+      summary: Trạng thái hồ sơ Atlas (ADMIN, EDITOR)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AtlasStatus' }
+    put:
+      tags: [atlas]
+      summary: Bật/tắt hồ sơ Atlas (ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AtlasStatus' }
+        '422': { $ref: '#/components/responses/Error' }   # ATLAS_PROFILE_INCOMPLETE
+
+  # ------------------------------------------------------- nexture-admin
+  /admin/organizations:
+    get:
+      tags: [nexture-admin]
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/q'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageMeta'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/AdminOrgRow' } }
+  /admin/organizations/{orgId}/public-entities:
+    parameters: [ { $ref: '#/components/parameters/orgId' } ]
+    get:
+      tags: [nexture-admin]
+      summary: Nội dung đang LIVE hoặc đang bị ẩn bởi NexTure của một tổ chức
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/AdminEntityRow' } }
+  /admin/hide:
+    post:
+      tags: [nexture-admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetType, targetId, reason]
+              properties:
+                targetType: { type: string, enum: [ORGANIZATION, STORY, EVENT, PERSON, PRODUCT_PROJECT] }
+                targetId: { type: string, format: uuid }
+                reason: { type: string, minLength: 5, maxLength: 500 }
+      responses:
+        '204': { description: Hidden }
+  /admin/unhide:
+    post:
+      tags: [nexture-admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetType, targetId]
+              properties:
+                targetType: { type: string, enum: [ORGANIZATION, STORY, EVENT, PERSON, PRODUCT_PROJECT] }
+                targetId: { type: string, format: uuid }
+      responses:
+        '204': { description: Unhidden }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: better-auth.session_token
+
+  parameters:
+    orgId: { name: orgId, in: path, required: true, schema: { type: string, format: uuid } }
+    id: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    workflowCollection:
+      name: collection
+      in: path
+      required: true
+      schema: { type: string, enum: [stories, events, people, products, media] }
+    contentCollection:
+      name: collection
+      in: path
+      required: true
+      schema: { type: string, enum: [stories, events, people, products] }
+    page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    pageSize: { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+    q: { name: q, in: query, schema: { type: string, maxLength: 100 } }
+    statusFilter: { name: status, in: query, schema: { $ref: '#/components/schemas/ContentStatus' } }
+    visibilityFilter: { name: visibility, in: query, schema: { $ref: '#/components/schemas/Visibility' } }
+    publicStateFilter: { name: publicState, in: query, schema: { $ref: '#/components/schemas/PublicState' } }
+    relatedValueId: { name: valueId, in: query, description: 'Chỉ nội dung liên kết với giá trị văn hóa này', schema: { type: string, format: uuid } }
+    relatedPersonId: { name: personId, in: query, description: 'Chỉ nội dung có quan hệ với Person này', schema: { type: string, format: uuid } }
+
+  requestBodies:
+    VersionOnly:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [version]
+            properties:
+              version: { type: integer }
+
+  responses:
+    Error:
+      description: Lỗi (xem 05-api-ghi-chu.md §3)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    AnyRecord:
+      description: Bản ghi đầy đủ sau thay đổi
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/Story'
+              - $ref: '#/components/schemas/Event'
+              - $ref: '#/components/schemas/Person'
+              - $ref: '#/components/schemas/Product'
+              - $ref: '#/components/schemas/Media'
+
+  schemas:
+    # ---------- enum
+    OrgRole: { type: string, enum: [ADMIN, EDITOR, VIEWER] }
+    ContentStatus: { type: string, enum: [DRAFT, PENDING_REVIEW, VERIFIED] }
+    Visibility: { type: string, enum: [PRIVATE, INTERNAL, PUBLIC] }
+    PublicState: { type: string, enum: [NOT_PUBLIC, LIVE, WAITING_ORG, HIDDEN_BY_NEXTURE, NOT_USED], description: 'NOT_USED chỉ dùng cho media (04-trang-thai.md §3)' }
+    EntityType: { type: string, enum: [STORY, EVENT, PERSON, PRODUCT_PROJECT, CULTURE_VALUE] }
+    StoryType: { type: string, enum: [COMPANY, FOUNDER, CULTURE, PEOPLE, PRODUCT] }
+    EventType: { type: string, enum: [FOUNDING, MILESTONE, PRODUCT_LAUNCH, ACHIEVEMENT, EXPANSION, CULTURE_ACTIVITY, PARTNERSHIP, OTHER] }
+    PPKind: { type: string, enum: [PRODUCT, PROJECT] }
+    PPStatus: { type: string, enum: [PLANNED, ACTIVE, COMPLETED, DISCONTINUED] }
+    EmployeeSize: { type: string, enum: [S1_10, S11_50, S51_200, S201_500, S500_PLUS] }
+    MediaKind: { type: string, enum: [IMAGE, DOCUMENT, VIDEO, AUDIO] }
+    DatePrecision: { type: string, enum: [YEAR, MONTH, DAY] }
+
+    # ---------- chung
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string, description: 'Câu tiếng Việt hiển thị được cho người dùng' }
+            details: { type: object, additionalProperties: true }
+    PageMeta:
+      type: object
+      required: [page, pageSize, total]
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+    VersionedPatch:
+      type: object
+      required: [version]
+      properties:
+        version: { type: integer }
+    FuzzyDate:
+      type: object
+      required: [date, precision]
+      properties:
+        date: { type: string, format: date }
+        precision: { $ref: '#/components/schemas/DatePrecision' }
+    UserRef:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+    MediaRef:
+      type: object
+      required: [id, title, kind, url]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        kind: { $ref: '#/components/schemas/MediaKind' }
+        mimeType: { type: string }
+        url: { type: string, description: 'Presigned GET, hết hạn 60 phút' }
+        width: { type: [integer, 'null'] }
+        height: { type: [integer, 'null'] }
+        altText: { type: [string, 'null'] }
+    EntityPermissions:
+      type: object
+      required: [canEdit, canDelete, canSubmit, canWithdraw, canApprove, canReturn, canUnverify, allowedVisibilities]
+      properties:
+        canEdit: { type: boolean }
+        canDelete: { type: boolean }
+        canSubmit: { type: boolean }
+        canWithdraw: { type: boolean }
+        canApprove: { type: boolean }
+        canReturn: { type: boolean }
+        canUnverify: { type: boolean }
+        allowedVisibilities: { type: array, items: { $ref: '#/components/schemas/Visibility' } }
+    EntitySummary:
+      type: object
+      description: Dùng cho danh sách, timeline, tìm kiếm, quan hệ, hàng chờ duyệt
+      required: [id, type, title, status, visibility, publicState, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [STORY, EVENT, PERSON, PRODUCT_PROJECT, MEDIA] }
+        title: { type: string, description: 'title_vi | full_name | media.title' }
+        subtitle: { type: [string, 'null'], description: 'Loại story/event, vai trò person, PRODUCT/PROJECT, loại media' }
+        summary: { type: [string, 'null'] }
+        date: { oneOf: [ { $ref: '#/components/schemas/FuzzyDate' }, { type: 'null' } ] }
+        thumbnailUrl: { type: [string, 'null'] }
+        status: { $ref: '#/components/schemas/ContentStatus' }
+        visibility: { $ref: '#/components/schemas/Visibility' }
+        publicState: { $ref: '#/components/schemas/PublicState' }
+        submittedBy: { oneOf: [ { $ref: '#/components/schemas/UserRef' }, { type: 'null' } ] }
+        submittedAt: { type: [string, 'null'], format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Source:
+      type: object
+      required: [id, title, isPublic, sortOrder]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        url: { type: [string, 'null'] }
+        media: { oneOf: [ { $ref: '#/components/schemas/MediaRef' }, { type: 'null' } ] }
+        note: { type: [string, 'null'] }
+        isPublic: { type: boolean }
+        sortOrder: { type: integer }
+    SourceInput:
+      type: object
+      required: [title]
+      description: Đúng một trong mediaId hoặc url
+      properties:
+        title: { type: string, minLength: 1, maxLength: 300 }
+        mediaId: { type: [string, 'null'], format: uuid }
+        url: { type: [string, 'null'], format: uri }
+        note: { type: [string, 'null'], maxLength: 1000 }
+        isPublic: { type: boolean, default: false }
+    AttachedMedia:
+      type: object
+      required: [media, sortOrder]
+      properties:
+        media: { $ref: '#/components/schemas/MediaRef' }
+        caption: { type: [string, 'null'] }
+        sortOrder: { type: integer }
+    Related:
+      type: object
+      description: Nội dung liên quan, nhóm theo loại (đã áp bộ lọc hiển thị)
+      required: [stories, events, people, products, values]
+      properties:
+        stories: { type: array, items: { $ref: '#/components/schemas/EntitySummary' } }
+        events: { type: array, items: { $ref: '#/components/schemas/EntitySummary' } }
+        people: { type: array, items: { $ref: '#/components/schemas/EntitySummary' } }
+        products: { type: array, items: { $ref: '#/components/schemas/EntitySummary' } }
+        values:
+          type: array
+          items:
+            type: object
+            required: [id, name]
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+    EntityMeta:
+      type: object
+      description: Trường chung của mọi bản ghi nội dung chi tiết
+      required: [id, organizationId, status, visibility, publicState, version, createdBy, createdAt, updatedBy, updatedAt, permissions]
+      properties:
+        id: { type: string, format: uuid }
+        organizationId: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/ContentStatus' }
+        visibility: { $ref: '#/components/schemas/Visibility' }
+        publicState: { $ref: '#/components/schemas/PublicState' }
+        publicUrl: { type: [string, 'null'], description: 'Link Atlas khi publicState = LIVE' }
+        atlasHiddenReason: { type: [string, 'null'] }
+        version: { type: integer }
+        internalNotes: { type: [string, 'null'], description: 'Không có với VIEWER' }
+        returnNote: { type: [string, 'null'], description: 'Không có với VIEWER' }
+        submittedBy: { oneOf: [ { $ref: '#/components/schemas/UserRef' }, { type: 'null' } ] }
+        submittedAt: { type: [string, 'null'], format: date-time }
+        verifiedBy: { oneOf: [ { $ref: '#/components/schemas/UserRef' }, { type: 'null' } ] }
+        verifiedAt: { type: [string, 'null'], format: date-time }
+        createdBy: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+        updatedBy: { $ref: '#/components/schemas/UserRef' }
+        updatedAt: { type: string, format: date-time }
+        permissions: { $ref: '#/components/schemas/EntityPermissions' }
+    EntityAttachments:
+      type: object
+      required: [related, media, sources]
+      properties:
+        related: { $ref: '#/components/schemas/Related' }
+        media: { type: array, items: { $ref: '#/components/schemas/AttachedMedia' } }
+        sources: { type: array, items: { $ref: '#/components/schemas/Source' } }
+
+    # ---------- Story
+    StoryFields:
+      type: object
+      properties:
+        storyType: { $ref: '#/components/schemas/StoryType' }
+        titleVi: { type: string, minLength: 1, maxLength: 200 }
+        titleEn: { type: [string, 'null'], maxLength: 200 }
+        summaryVi: { type: [string, 'null'], maxLength: 500 }
+        summaryEn: { type: [string, 'null'], maxLength: 500 }
+        contentVi: { type: [string, 'null'], description: 'HTML, server sanitize' }
+        contentEn: { type: [string, 'null'] }
+        storyDate: { oneOf: [ { $ref: '#/components/schemas/FuzzyDate' }, { type: 'null' } ] }
+        coverMediaId: { type: [string, 'null'], format: uuid }
+        internalNotes: { type: [string, 'null'], maxLength: 5000 }
+    StoryInput:
+      allOf:
+        - $ref: '#/components/schemas/StoryFields'
+        - type: object
+          required: [storyType, titleVi]
+          properties:
+            status: { type: string, enum: [DRAFT, VERIFIED], default: DRAFT }
+            visibility: { type: string, enum: [PRIVATE, INTERNAL], default: INTERNAL }
+    StoryPatch: { $ref: '#/components/schemas/StoryFields' }
+    Story:
+      allOf:
+        - $ref: '#/components/schemas/EntityMeta'
+        - $ref: '#/components/schemas/StoryFields'
+        - $ref: '#/components/schemas/EntityAttachments'
+        - type: object
+          required: [type, storyType, titleVi]
+          properties:
+            type: { const: STORY }
+            cover: { oneOf: [ { $ref: '#/components/schemas/MediaRef' }, { type: 'null' } ] }
+            isFeatured: { type: boolean, description: 'Là featured_story_id của tổ chức' }
+
+    # ---------- Event
+    EventFields:
+      type: object
+      properties:
+        eventType: { $ref: '#/components/schemas/EventType' }
+        titleVi: { type: string, minLength: 1, maxLength: 200 }
+        titleEn: { type: [string, 'null'], maxLength: 200 }
+        summaryVi: { type: [string, 'null'], maxLength: 500 }
+        summaryEn: { type: [string, 'null'], maxLength: 500 }
+        contentVi: { type: [string, 'null'] }
+        contentEn: { type: [string, 'null'] }
+        startDate: { $ref: '#/components/schemas/FuzzyDate' }
+        endDate: { oneOf: [ { $ref: '#/components/schemas/FuzzyDate' }, { type: 'null' } ] }
+        coverMediaId: { type: [string, 'null'], format: uuid }
+        internalNotes: { type: [string, 'null'], maxLength: 5000 }
+    EventInput:
+      allOf:
+        - $ref: '#/components/schemas/EventFields'
+        - type: object
+          required: [titleVi, startDate]
+          properties:
+            status: { type: string, enum: [DRAFT, VERIFIED], default: DRAFT }
+            visibility: { type: string, enum: [PRIVATE, INTERNAL], default: INTERNAL }
+    EventPatch: { $ref: '#/components/schemas/EventFields' }
+    Event:
+      allOf:
+        - $ref: '#/components/schemas/EntityMeta'
+        - $ref: '#/components/schemas/EventFields'
+        - $ref: '#/components/schemas/EntityAttachments'
+        - type: object
+          required: [type, eventType, titleVi, startDate]
+          properties:
+            type: { const: EVENT }
+            cover: { oneOf: [ { $ref: '#/components/schemas/MediaRef' }, { type: 'null' } ] }
+
+    # ---------- Person
+    PersonFields:
+      type: object
+      properties:
+        fullName: { type: string, minLength: 1, maxLength: 150 }
+        roleTitleVi: { type: [string, 'null'], maxLength: 150 }
+        roleTitleEn: { type: [string, 'null'], maxLength: 150 }
+        isFounder: { type: boolean }
+        joinedDate: { oneOf: [ { $ref: '#/components/schemas/FuzzyDate' }, { type: 'null' } ] }
+        leftDate: { oneOf: [ { $ref: '#/components/schemas/FuzzyDate' }, { type: 'null' } ] }
+        bioVi: { type: [string, 'null'] }
+        bioEn: { type: [string, 'null'] }
+        contributionsVi: { type: [string, 'null'] }
+        contributionsEn: { type: [string, 'null'] }
+        avatarMediaId: { type: [string, 'null'], format: uuid }
+        internalNotes: { type: [string, 'null'], maxLength: 5000 }
+    PersonInput:
+      allOf:
+        - $ref: '#/components/schemas/PersonFields'
+        - type: object
+          required: [fullName]
+          properties:
+            status: { type: string, enum: [DRAFT, VERIFIED], default: DRAFT }
+            visibility: { type: string, enum: [PRIVATE, INTERNAL], default: INTERNAL }
+    PersonPatch: { $ref: '#/components/schemas/PersonFields' }
+    Person:
+      allOf:
+        - $ref: '#/components/schemas/EntityMeta'
+        - $ref: '#/components/schemas/PersonFields'
+        - $ref: '#/components/schemas/EntityAttachments'
+        - type: object
+          required: [type, fullName, isFounder]
+          properties:
+            type: { const: PERSON }
+            avatar: { oneOf: [ { $ref: '#/components/schemas/MediaRef' }, { type: 'null' } ] }
+
+    # ---------- Product / Project
+    ProductFields:
+      type: object
+      properties:
+        kind: { $ref: '#/components/schemas/PPKind' }
+        titleVi: { type: string, minLength: 1, maxLength: 200 }
+        titleEn: { type: [string, 'null'], maxLength: 200 }
+        summaryVi: { type: [string, 'null'], maxLength: 500 }
+        summaryEn: { type: [string, 'null'], maxLength: 500 }
+        descriptionVi: { type: [string, 'null'] }
+        descriptionEn: { type: [string, 'null'] }
+        launchDate: { oneOf: [ { $ref: '#/components/schemas/FuzzyDate' }, { type: 'null' } ] }
+        ppStatus: { $ref: '#/components/schemas/PPStatus' }
+        coverMediaId: { type: [string, 'null'], format: uuid }
+        internalNotes: { type: [string, 'null'], maxLength: 5000 }
+    ProductInput:
+      allOf:
+        - $ref: '#/components/schemas/ProductFields'
+        - type: object
+          required: [kind, titleVi]
+          properties:
+            status: { type: string, enum: [DRAFT, VERIFIED], default: DRAFT }
+            visibility: { type: string, enum: [PRIVATE, INTERNAL], default: INTERNAL }
+    ProductPatch: { $ref: '#/components/schemas/ProductFields' }
+    Product:
+      allOf:
+        - $ref: '#/components/schemas/EntityMeta'
+        - $ref: '#/components/schemas/ProductFields'
+        - $ref: '#/components/schemas/EntityAttachments'
+        - type: object
+          required: [type, kind, titleVi, ppStatus]
+          properties:
+            type: { const: PRODUCT_PROJECT }
+            cover: { oneOf: [ { $ref: '#/components/schemas/MediaRef' }, { type: 'null' } ] }
+
+    # ---------- Culture value
+    CultureValueFields:
+      type: object
+      properties:
+        nameVi: { type: string, minLength: 1, maxLength: 100 }
+        nameEn: { type: [string, 'null'], maxLength: 100 }
+        descriptionVi: { type: [string, 'null'], maxLength: 1000 }
+        descriptionEn: { type: [string, 'null'], maxLength: 1000 }
+        visibility: { type: string, enum: [INTERNAL, PUBLIC] }
+    CultureValueInput:
+      allOf:
+        - $ref: '#/components/schemas/CultureValueFields'
+        - type: object
+          required: [nameVi]
+    CultureValuePatch: { $ref: '#/components/schemas/CultureValueFields' }
+    CultureValue:
+      allOf:
+        - $ref: '#/components/schemas/CultureValueFields'
+        - type: object
+          required: [id, nameVi, visibility, sortOrder, version, storyCount, eventCount]
+          properties:
+            id: { type: string, format: uuid }
+            sortOrder: { type: integer }
+            version: { type: integer }
+            storyCount: { type: integer }
+            eventCount: { type: integer }
+
+    # ---------- Media
+    MediaMetaInput:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 300, description: 'Mặc định = tên file không đuôi' }
+        description: { type: [string, 'null'], maxLength: 2000 }
+        altText: { type: [string, 'null'], maxLength: 300 }
+        occurredDate: { oneOf: [ { $ref: '#/components/schemas/FuzzyDate' }, { type: 'null' } ] }
+        sourceNote: { type: [string, 'null'], maxLength: 500 }
+        providedBy: { type: [string, 'null'], maxLength: 200 }
+        tags: { type: array, maxItems: 20, items: { type: string, minLength: 1, maxLength: 50 } }
+    Media:
+      allOf:
+        - $ref: '#/components/schemas/MediaMetaInput'
+        - type: object
+          required: [id, kind, title, originalFilename, mimeType, sizeBytes, url, status, visibility, publicState, version, createdBy, createdAt, permissions]
+          properties:
+            id: { type: string, format: uuid }
+            kind: { $ref: '#/components/schemas/MediaKind' }
+            originalFilename: { type: string }
+            mimeType: { type: string }
+            sizeBytes: { type: integer }
+            width: { type: [integer, 'null'] }
+            height: { type: [integer, 'null'] }
+            url: { type: string, description: 'Presigned GET 60 phút' }
+            status: { $ref: '#/components/schemas/ContentStatus' }
+            visibility: { $ref: '#/components/schemas/Visibility' }
+            publicState: { $ref: '#/components/schemas/PublicState' }
+            version: { type: integer }
+            createdBy: { $ref: '#/components/schemas/UserRef' }
+            createdAt: { type: string, format: date-time }
+            permissions: { $ref: '#/components/schemas/EntityPermissions' }
+    MediaDetail:
+      allOf:
+        - $ref: '#/components/schemas/Media'
+        - type: object
+          required: [usedIn]
+          properties:
+            usedIn:
+              type: array
+              description: Nơi đang tham chiếu tư liệu (logo, ảnh bìa, avatar, ảnh kèm, nguồn)
+              items:
+                type: object
+                required: [usage, entity]
+                properties:
+                  usage: { type: string, enum: [ORG_LOGO, COVER, AVATAR, ATTACHED, SOURCE] }
+                  entity: { oneOf: [ { $ref: '#/components/schemas/EntitySummary' }, { type: 'null' } ] }
+
+    # ---------- Organization
+    OrgProfileFields:
+      type: object
+      properties:
+        name: { type: string, minLength: 2, maxLength: 200 }
+        slug: { type: string, pattern: '^[a-z0-9]+(-[a-z0-9]+)*$', minLength: 2, maxLength: 80 }
+        logoMediaId: { type: [string, 'null'], format: uuid }
+        foundedYear: { type: [integer, 'null'], minimum: 1800, maximum: 2100 }
+        industryCode: { type: [string, 'null'] }
+        employeeSize: { oneOf: [ { $ref: '#/components/schemas/EmployeeSize' }, { type: 'null' } ] }
+        provinceCode: { type: [string, 'null'] }
+        website: { type: [string, 'null'], format: uri }
+        shortDescVi: { type: [string, 'null'], maxLength: 300 }
+        shortDescEn: { type: [string, 'null'], maxLength: 300 }
+        featuredStoryId: { type: [string, 'null'], format: uuid }
+    CreateOrgInput:
+      allOf:
+        - $ref: '#/components/schemas/OrgProfileFields'
+        - type: object
+          required: [name]
+          properties:
+            founderNames:
+              type: array
+              maxItems: 5
+              description: 'Tạo nhanh Person is_founder=true, status VERIFIED, visibility INTERNAL'
+              items: { type: string, minLength: 1, maxLength: 150 }
+            values:
+              type: array
+              maxItems: 10
+              description: 'Tạo nhanh culture_values theo thứ tự, visibility INTERNAL'
+              items:
+                type: object
+                required: [nameVi]
+                properties:
+                  nameVi: { type: string, minLength: 1, maxLength: 100 }
+                  descriptionVi: { type: [string, 'null'], maxLength: 1000 }
+    UpdateOrgInput:
+      allOf:
+        - $ref: '#/components/schemas/VersionedPatch'
+        - $ref: '#/components/schemas/OrgProfileFields'
+    Organization:
+      allOf:
+        - $ref: '#/components/schemas/OrgProfileFields'
+        - type: object
+          required: [id, name, slug, slugLocked, atlasEnabled, version, myRole, permissions, onboarding]
+          properties:
+            id: { type: string, format: uuid }
+            logo: { oneOf: [ { $ref: '#/components/schemas/MediaRef' }, { type: 'null' } ] }
+            slugLocked: { type: boolean }
+            atlasEnabled: { type: boolean }
+            atlasHiddenReason: { type: [string, 'null'] }
+            atlasUrl: { type: [string, 'null'], description: 'Khi hồ sơ đang hiển thị' }
+            version: { type: integer }
+            myRole: { $ref: '#/components/schemas/OrgRole' }
+            permissions:
+              type: object
+              required: [canEditProfile, canManageMembers, canToggleAtlas, canViewActivity]
+              properties:
+                canEditProfile: { type: boolean }
+                canManageMembers: { type: boolean }
+                canToggleAtlas: { type: boolean }
+                canViewActivity: { type: boolean }
+            onboarding:
+              type: object
+              description: Checklist 5 nhóm dữ liệu (tính với mọi trạng thái, trừ đã xóa)
+              required: [hasFounder, hasEvents, hasPeople, hasCultureStory, hasProduct]
+              properties:
+                hasFounder: { type: boolean, description: '≥1 Person is_founder' }
+                hasEvents: { type: boolean, description: '≥3 Event' }
+                hasPeople: { type: boolean, description: '≥1 Person không phải founder' }
+                hasCultureStory: { type: boolean, description: '≥1 Story CULTURE hoặc FOUNDER hoặc COMPANY' }
+                hasProduct: { type: boolean, description: '≥1 Product/Project' }
+    Me:
+      type: object
+      required: [id, name, email, platformRole, organizations]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        platformRole: { type: string, enum: [USER, NEXTURE_ADMIN] }
+        organizations:
+          type: array
+          items:
+            type: object
+            required: [id, name, slug, role]
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              slug: { type: string }
+              logoUrl: { type: [string, 'null'] }
+              role: { $ref: '#/components/schemas/OrgRole' }
+    Member:
+      type: object
+      required: [userId, name, email, role, joinedAt]
+      properties:
+        userId: { type: string }
+        name: { type: string }
+        email: { type: string }
+        role: { $ref: '#/components/schemas/OrgRole' }
+        joinedAt: { type: string, format: date-time }
+    Invite:
+      type: object
+      required: [id, role, expiresAt, createdAt, createdBy]
+      properties:
+        id: { type: string, format: uuid }
+        role: { $ref: '#/components/schemas/OrgRole' }
+        email: { type: [string, 'null'] }
+        expiresAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        createdBy: { $ref: '#/components/schemas/UserRef' }
+
+    # ---------- views
+    Dashboard:
+      type: object
+      required: [counts, pendingReview, publicLive, recentActivity]
+      properties:
+        counts:
+          type: object
+          required: [stories, events, people, products, media]
+          properties:
+            stories: { type: integer }
+            events: { type: integer }
+            people: { type: integer }
+            products: { type: integer }
+            media: { type: integer }
+        pendingReview: { type: integer, description: 'VIEWER luôn 0' }
+        publicLive: { type: integer, description: 'Số nội dung publicState=LIVE' }
+        recentActivity:
+          type: array
+          description: '10 dòng gần nhất; VIEWER nhận mảng rỗng'
+          items: { $ref: '#/components/schemas/ActivityLog' }
+    ActivityLog:
+      type: object
+      required: [id, action, targetType, targetId, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        actor: { oneOf: [ { $ref: '#/components/schemas/UserRef' }, { type: 'null' } ] }
+        action: { type: string }
+        targetType: { type: string }
+        targetId: { type: string }
+        targetLabel: { type: [string, 'null'] }
+        changes: { type: [object, 'null'], additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+    AtlasStatus:
+      type: object
+      required: [enabled, profileComplete, missingFields, counts]
+      properties:
+        enabled: { type: boolean }
+        hiddenReason: { type: [string, 'null'] }
+        profileUrl: { type: [string, 'null'] }
+        profileComplete: { type: boolean }
+        missingFields: { type: array, items: { type: string, enum: [name, logoMediaId, foundedYear, industryCode, provinceCode, shortDescVi] } }
+        lastSyncedAt: { type: [string, 'null'], format: date-time }
+        counts:
+          type: object
+          description: Đếm theo publicState cho từng loại
+          required: [live, waitingOrg, hidden]
+          properties:
+            live: { $ref: '#/components/schemas/TypeCounts' }
+            waitingOrg: { $ref: '#/components/schemas/TypeCounts' }
+            hidden: { $ref: '#/components/schemas/TypeCounts' }
+        verifiedNotPublic: { $ref: '#/components/schemas/TypeCounts' }
+    TypeCounts:
+      type: object
+      required: [stories, events, people, products, media]
+      properties:
+        stories: { type: integer }
+        events: { type: integer }
+        people: { type: integer }
+        products: { type: integer }
+        media: { type: integer }
+    PublicPreview:
+      type: object
+      required: [path, entity]
+      properties:
+        path: { type: string, description: 'Đường dẫn Atlas dự kiến, VD /stories/<slug dự kiến>' }
+        entity: { type: object, additionalProperties: true, description: 'Đúng cấu trúc dòng atlas.entities (08 §3) + relations, media' }
+        warnings:
+          type: array
+          items:
+            type: string
+            enum: [NOT_VERIFIED, ORG_ATLAS_DISABLED, COVER_NOT_PUBLIC, SOME_MEDIA_NOT_PUBLIC, NO_SUMMARY]
+    AdminOrgRow:
+      type: object
+      required: [id, name, slug, createdAt, memberCount, atlasEnabled, liveCount]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        createdAt: { type: string, format: date-time }
+        memberCount: { type: integer }
+        atlasEnabled: { type: boolean }
+        atlasHiddenReason: { type: [string, 'null'] }
+        liveCount: { type: integer }
+        atlasUrl: { type: [string, 'null'] }
+    AdminEntityRow:
+      type: object
+      required: [id, type, title, state]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [STORY, EVENT, PERSON, PRODUCT_PROJECT] }
+        title: { type: string }
+        state: { type: string, enum: [LIVE, HIDDEN_BY_NEXTURE] }
+        atlasUrl: { type: [string, 'null'] }
+        hiddenReason: { type: [string, 'null'] }
+        hiddenAt: { type: [string, 'null'], format: date-time }
