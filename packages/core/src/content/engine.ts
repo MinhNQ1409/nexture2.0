@@ -315,6 +315,13 @@ export async function listContent(ctx: Ctx, def: KindDef, orgId: string, query: 
   if (query.status) conds.push(eq(tbl.status, query.status as BaseRow['status']));
   if (query.visibility) conds.push(eq(tbl.visibility, query.visibility as BaseRow['visibility']));
   conds.push(...(def.filters?.(def.table, query as Record<string, string | undefined>) ?? []));
+  const uuid = /^[0-9a-f-]{36}$/i;
+  if (typeof query.valueId === 'string' && uuid.test(query.valueId)) {
+    conds.push(sql`${tbl.id} IN (SELECT source_id FROM core.relationships WHERE target_type = 'CULTURE_VALUE' AND target_id = ${query.valueId})`);
+  }
+  if (typeof query.personId === 'string' && uuid.test(query.personId) && def.type !== 'PERSON') {
+    conds.push(sql`${tbl.id} IN (SELECT target_id FROM core.relationships WHERE source_type = 'PERSON' AND source_id = ${query.personId})`);
+  }
   const q = query.q?.trim();
   if (q && q.length >= 2) {
     conds.push(sql`core.f_search_norm(${def.searchText(def.table)}) LIKE '%' || core.f_search_norm(${q}) || '%'`);

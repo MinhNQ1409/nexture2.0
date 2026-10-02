@@ -135,7 +135,7 @@ describe('demo company on Atlas', () => {
     admin.ctx.storage = await tempStorage();
     const { orgId } = await createDemoOrg(admin.ctx);
     const rows = await db.select({ type: a.entities.entityType }).from(a.entities).where(eq(a.entities.orgId, orgId));
-    const types = new Set(rows.map((r) => r.type));
+    const types = new Set<string>(rows.map((r) => r.type));
     for (const ty of ['STORY', 'EVENT', 'PERSON']) expect(types.has(ty)).toBe(true);
     expect(types.has('PRODUCT') || types.has('PROJECT')).toBe(true);
     const [company] = await db.select().from(a.companies).where(eq(a.companies.orgId, orgId));

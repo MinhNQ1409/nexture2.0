@@ -17,7 +17,7 @@ const SECTIONS: { label: string; items: Item[] }[] = [
       { href: 'events', label: 'Sự kiện', icon: Flag, ready: true },
       { href: 'people', label: 'Con người', icon: Users, ready: true },
       { href: 'products', label: 'Sản phẩm & Dự án', icon: Package, ready: true },
-      { href: 'values', label: 'Giá trị văn hóa', icon: Gem },
+      { href: 'values', label: 'Giá trị văn hóa', icon: Gem, ready: true },
       { href: 'library', label: 'Thư viện tư liệu', icon: Images },
     ],
   },

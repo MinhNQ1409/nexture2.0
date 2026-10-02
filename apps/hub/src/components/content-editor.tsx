@@ -4,8 +4,9 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, type ReactNode } from 'react';
+import { RelationsCard } from './relations-card';
 import { ArrowLeft, ExternalLink, MessageSquareWarning } from 'lucide-react';
-import { STATUS_LABELS, VISIBILITY_LABELS, type ContentStatus, type Visibility } from '@nexture/contracts';
+import { VISIBILITY_LABELS, type ContentStatus, type Visibility } from '@nexture/contracts';
 import { PublicStateBadge, StatusBadge, type PublicStateValue } from '@/components/badges';
 import { Alert, Button, Card, cx } from '@/components/ui';
 import { api, type ApiError } from '@/lib/fetcher';
@@ -48,13 +49,6 @@ const VIS_HELP: Record<Visibility, string> = {
   INTERNAL: 'Mọi thành viên thấy khi đã xác minh.',
   PUBLIC: 'Hiển thị trên Culture Atlas cho mọi người.',
 };
-const RELATED_GROUPS = [
-  ['stories', 'Câu chuyện'],
-  ['events', 'Sự kiện'],
-  ['people', 'Con người'],
-  ['products', 'Sản phẩm & Dự án'],
-  ['values', 'Giá trị văn hóa'],
-] as const;
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('vi-VN') : '');
 
 export function ContentEditor<E extends ContentBase, F>(props: {
@@ -135,8 +129,6 @@ export function ContentEditor<E extends ContentBase, F>(props: {
     run(() => api<E>(`${base}/${ev.id}/visibility`, { method: 'PUT', json: { version: ev.version, visibility: v } }));
   }
 
-  const hasRelated = ev && RELATED_GROUPS.some(([k]) => ev.related[k].length > 0);
-
   return (
     <div className="flex w-full min-w-0 flex-col gap-4">
       <Link href={`/o/${orgId}/${collection}`} className="inline-flex w-fit items-center gap-2 text-body-md text-ink-mute hover:text-ink">
@@ -186,38 +178,14 @@ export function ContentEditor<E extends ContentBase, F>(props: {
           </Card>
 
           {ev && (
-            <Card className="flex flex-col gap-3">
-              <h2 className="text-heading-sm">Liên quan</h2>
-              {hasRelated ? (
-                <dl className="flex flex-col gap-3">
-                  {RELATED_GROUPS.filter(([k]) => ev.related[k].length > 0).map(([k, label]) => (
-                    <div key={k}>
-                      <dt className="pb-1 text-caption font-semibold text-ink-mute">{label}</dt>
-                      <dd className="flex flex-wrap gap-2">
-                        {ev.related[k].map((r) =>
-                          k === 'values' ? (
-                            <span key={r.id} className="rounded-pill bg-primary-light px-3 py-1 text-body-md text-primary-dark">
-                              {r.title}
-                            </span>
-                          ) : (
-                            <Link
-                              key={r.id}
-                              href={`/o/${orgId}/${k}/${r.id}`}
-                              className="inline-flex items-center gap-2 rounded-md border border-hairline px-3 py-1.5 text-body-md hover:border-primary hover:text-primary"
-                            >
-                              {r.title}
-                              {r.status && r.status !== 'VERIFIED' && <span className="text-caption text-ink-mute">· {STATUS_LABELS[r.status as ContentStatus]}</span>}
-                            </Link>
-                          ),
-                        )}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              ) : (
-                <p className="text-body-md text-ink-mute">Chưa liên kết với nội dung nào.</p>
-              )}
-            </Card>
+            <RelationsCard
+              orgId={orgId}
+              collection={collection}
+              entityId={ev.id}
+              related={ev.related}
+              canEdit={ev.permissions.canEdit}
+              onChange={(related) => setEv({ ...ev, related })}
+            />
           )}
         </div>
 

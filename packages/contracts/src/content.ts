@@ -175,3 +175,17 @@ export const completeUploadInput = z.object({
   width: z.number().int().positive().nullish(),
   height: z.number().int().positive().nullish(),
 });
+
+// Culture values (06 §9) and relations (05-api.yaml PUT .../relations).
+export const valueInput = z.object({
+  nameVi: z.string().trim().min(1).max(100),
+  descriptionVi: nullableText(1000),
+  visibility: z.enum(['INTERNAL', 'PUBLIC']).default('INTERNAL'),
+});
+export type ValueInput = z.input<typeof valueInput>;
+export const valuePatch = z.object({ version: z.number().int(), ...valueInput.shape, visibility: z.enum(['INTERNAL', 'PUBLIC']) }).partial().required({ version: true });
+export const valueOrder = z.object({ ids: z.array(z.uuid()).max(100) });
+
+export const RELATION_TARGETS = ['STORY', 'EVENT', 'PERSON', 'PRODUCT_PROJECT', 'CULTURE_VALUE'] as const;
+export type RelationTarget = (typeof RELATION_TARGETS)[number];
+export const relationsInput = z.object({ targetType: z.enum(RELATION_TARGETS), ids: z.array(z.uuid()).max(100) });

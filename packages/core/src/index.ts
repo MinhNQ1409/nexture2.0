@@ -15,6 +15,8 @@ export * from './content/stories';
 export * from './content/people';
 export * from './content/products';
 export * from './content/registry';
+export * from './content/relations';
+export * from './values';
 export * from './content/workflow';
 export * from './atlas';
 export * from './orgs';
