@@ -36,7 +36,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           </Link>
         )}
       </div>
-      {!q ? (
+      {type && !q ? (
+        <TypeResults q="" type={type} page={page} />
+      ) : !q ? (
         <p className="text-body-md text-ink-mute">Thử tìm theo tên doanh nghiệp, người sáng lập, sản phẩm…</p>
       ) : q.length < 2 ? (
         <p className="text-body-md text-ink-mute">Nhập ít nhất 2 ký tự.</p>
@@ -103,12 +105,12 @@ async function Grouped({ q }: { q: string }) {
 
 async function TypeResults({ q, type, page }: { q: string; type: SearchType; page: number }) {
   const r = await run(q, type, PAGE, (page - 1) * PAGE);
-  if (!r.total) return <p className="text-body-md text-ink-mute">Không tìm thấy kết quả cho “{q}”.</p>;
+  if (!r.total) return <p className="text-body-md text-ink-mute">{q ? `Không tìm thấy kết quả cho “${q}”.` : 'Chưa có nội dung nào.'}</p>;
   const pages = Math.ceil(r.total / PAGE);
   const href = (p: number) => `/search?q=${encodeURIComponent(q)}&type=${type}&page=${p}`;
   return (
     <section className="flex flex-col gap-4">
-      <p className="tabular text-body-md text-ink-mute">{r.total} kết quả</p>
+      <p className="tabular text-body-md text-ink-mute">{q ? `${r.total} kết quả` : `${r.total} mục, mới nhất trước`}</p>
       <Results r={r} />
       {pages > 1 && (
         <nav aria-label="Phân trang" className="flex items-center justify-center gap-4 text-body-md">
