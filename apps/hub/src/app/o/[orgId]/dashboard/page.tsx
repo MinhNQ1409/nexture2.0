@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Circle, CircleCheck, ImagePlus } from "lucide-react";
-import { ROLE_LABELS } from "@nexture/contracts";
-import { getOrg } from "@nexture/core";
+import { ArrowRight, Circle, CircleCheck, ClipboardCheck, ImagePlus } from "lucide-react";
+import { ACTIVITY_LABELS, ROLE_LABELS, TARGET_TYPE_LABELS } from "@nexture/contracts";
+import { canOrg, getOrg, listActivity, reviewQueue } from "@nexture/core";
+import { activityHref, relativeTime } from "@/lib/activity";
 import { Alert, Badge, Card } from "@/components/ui";
 import { DemoButton } from "@/components/demo-button";
 import { requirePageCtx } from "@/lib/session";
@@ -28,6 +29,10 @@ export default async function Dashboard({
   const created = sp.created === "1";
   const demo = sp.demo === "1";
   const done = CHECKLIST.filter(([k]) => org.onboarding[k]).length;
+  const [pending, activity] = await Promise.all([
+    canOrg(org.myRole, "review.view") ? reviewQueue(ctx, orgId).then((r) => r.items.length) : null,
+    canOrg(org.myRole, "activity.view") ? listActivity(ctx, orgId, { pageSize: 10 }).then((r) => r.items) : null,
+  ]);
 
   return (
     // standard-content
@@ -127,6 +132,50 @@ export default async function Dashboard({
               lên Culture Atlas.
             </p>
           </section>
+        )}
+
+        {pending !== null && pending > 0 && (
+          <Link
+            href={`/o/${orgId}/review`}
+            className="flex items-center gap-4 self-start rounded-xl border border-hairline bg-canvas-white p-6 shadow-card hover:border-primary lg:col-span-4"
+          >
+            <ClipboardCheck size={28} strokeWidth={1.5} aria-hidden className="shrink-0 text-warning" />
+            <span className="flex-1">
+              <span className="block text-heading-sm">{pending} mục đang chờ duyệt</span>
+              <span className="block text-body-md text-ink-mute">Mở hàng chờ duyệt</span>
+            </span>
+            <ArrowRight size={16} strokeWidth={1.5} aria-hidden />
+          </Link>
+        )}
+
+        {activity && activity.length > 0 && (
+          <Card className="lg:col-span-8">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-heading-md">Hoạt động gần đây</h2>
+              <Link href={`/o/${orgId}/settings/activity`} className="text-body-md text-link underline">
+                Xem tất cả
+              </Link>
+            </div>
+            <ul className="mt-3 flex flex-col">
+              {activity.map((a) => {
+                const href = activityHref(orgId, a.targetType, a.targetId, a.action);
+                return (
+                  <li key={a.id} className="border-b border-hairline py-2 text-body-md last:border-b-0">
+                    <span className="font-semibold">{a.actor?.name ?? "Hệ thống"}</span> {ACTIVITY_LABELS[a.action] ?? a.action}{" "}
+                    <span className="text-ink-mute">{TARGET_TYPE_LABELS[a.targetType] ?? ""} </span>
+                    {href ? (
+                      <Link href={href} className="text-link hover:underline">
+                        {a.targetLabel}
+                      </Link>
+                    ) : (
+                      a.targetLabel
+                    )}
+                    <span className="text-caption text-ink-mute"> · {relativeTime(a.createdAt)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
         )}
       </div>
     </div>

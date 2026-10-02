@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Search } from 'lucide-react';
 import { fontVars } from '@/lib/fonts';
 import './globals.css';
 
@@ -22,6 +23,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
             <Link href="/companies" className="text-body-md font-semibold text-ink hover:text-primary">
               Doanh nghiệp
+            </Link>
+            <Link href="/search" className="ml-auto inline-flex items-center gap-2 text-body-md font-semibold text-ink hover:text-primary">
+              <Search size={18} strokeWidth={1.5} aria-hidden />
+              <span className="hidden sm:inline">Tìm kiếm</span>
             </Link>
           </nav>
         </header>

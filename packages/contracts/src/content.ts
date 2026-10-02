@@ -208,3 +208,44 @@ export const entityMediaInput = z.object({
   items: z.array(z.object({ mediaId: z.uuid(), caption: nullableText(300) })).max(50),
 });
 export const MEDIA_KIND_LABELS = { IMAGE: 'Ảnh', DOCUMENT: 'Tài liệu', VIDEO: 'Video', AUDIO: 'Âm thanh' } as const;
+
+// Activity log sentences (06 §5, §14.3): "{người} {hành động} {đối tượng}".
+export const ACTIVITY_LABELS: Record<string, string> = {
+  ORG_CREATED: 'đã tạo doanh nghiệp',
+  ORG_UPDATED: 'đã cập nhật hồ sơ',
+  ATLAS_ENABLED: 'đã bật hồ sơ trên Atlas',
+  ATLAS_DISABLED: 'đã tắt hồ sơ trên Atlas',
+  MEMBER_ROLE_CHANGED: 'đã đổi vai trò của',
+  MEMBER_REMOVED: 'đã gỡ thành viên',
+  MEMBER_JOINED: 'đã tham gia',
+  INVITE_CREATED: 'đã tạo lời mời',
+  INVITE_REVOKED: 'đã thu hồi lời mời',
+  MEDIA_UPLOADED: 'đã tải lên',
+  MEDIA_UPDATED: 'đã sửa tư liệu',
+  MEDIA_DELETED: 'đã xóa tư liệu',
+  ENTITY_CREATED: 'đã tạo',
+  ENTITY_UPDATED: 'đã sửa',
+  ENTITY_DELETED: 'đã xóa',
+  ENTITY_SUBMITTED: 'đã gửi duyệt',
+  ENTITY_APPROVED: 'đã xác minh',
+  ENTITY_RETURNED: 'đã trả lại',
+  ENTITY_UNVERIFIED: 'đã bỏ xác minh',
+  VISIBILITY_CHANGED: 'đã đổi mức hiển thị của',
+  RELATIONS_UPDATED: 'đã sửa liên kết của',
+  ENTITY_MEDIA_UPDATED: 'đã sửa bộ ảnh của',
+  SOURCE_ADDED: 'đã thêm nguồn cho',
+  SOURCE_REMOVED: 'đã gỡ nguồn của',
+  ATLAS_HIDDEN_BY_NEXTURE: 'NexTure đã ẩn',
+  ATLAS_UNHIDDEN_BY_NEXTURE: 'NexTure đã bỏ ẩn',
+};
+export const TARGET_TYPE_LABELS: Record<string, string> = {
+  ORGANIZATION: 'doanh nghiệp',
+  STORY: 'câu chuyện',
+  EVENT: 'sự kiện',
+  PERSON: 'người',
+  PRODUCT_PROJECT: 'sản phẩm/dự án',
+  CULTURE_VALUE: 'giá trị',
+  MEDIA: 'tư liệu',
+  MEMBER: 'thành viên',
+  INVITE: 'lời mời',
+};

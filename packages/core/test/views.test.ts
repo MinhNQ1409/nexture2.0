@@ -7,7 +7,7 @@ import { createStory } from '../src/content/stories';
 import { transition } from '../src/content/workflow';
 import { mediaTransition, getMedia } from '../src/media';
 import { createOrg } from '../src/orgs';
-import { listActivity, reviewQueue, timeline } from '../src/views';
+import { listActivity, reviewQueue, searchOrg, timeline } from '../src/views';
 import { db, expectError, makeUser } from './helpers';
 import { tempStorage, uploadImage } from './helpers-storage';
 
@@ -74,5 +74,22 @@ describe('review queue and activity', () => {
     expect(log.total).toBeGreaterThan(3);
     expect(log.items[0]).toMatchObject({ action: 'ENTITY_APPROVED', targetLabel: 'Câu chuyện chờ', actor: { name: 'Quản trị' } });
     await expectError(listActivity(editor.ctx, org.id), 'FORBIDDEN');
+  });
+});
+
+describe('hub search', () => {
+  it('finds content and media without accents, grouped by kind, filtered by type', async () => {
+    const { admin, org } = await setup();
+    await createStory(admin.ctx, org.id, { titleVi: 'Bữa cơm gia đình' });
+    await createEvent(admin.ctx, org.id, { titleVi: 'Bữa tiệc mười năm', startDate: { date: '2022-01-01', precision: 'YEAR' } });
+    await uploadImage(admin.ctx, org.id, 'bua-tiec.png');
+    const r = await searchOrg(admin.ctx, org.id, { q: 'bua' });
+    expect(r.groups.map((g) => [g.type, g.total])).toEqual([
+      ['STORY', 1],
+      ['EVENT', 1],
+      ['MEDIA', 1],
+    ]);
+    expect((await searchOrg(admin.ctx, org.id, { q: 'bua', types: 'EVENT' })).groups.map((g) => g.items[0]!.title)).toEqual(['Bữa tiệc mười năm']);
+    expect((await searchOrg(admin.ctx, org.id, { q: 'b' })).groups).toEqual([]);
   });
 });

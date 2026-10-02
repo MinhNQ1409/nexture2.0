@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { BookOpen, Building2, CalendarClock, ClipboardCheck, Flag, Gem, Globe, Images, LayoutDashboard, Menu, Package, UserCog, Users, X, type LucideIcon } from 'lucide-react';
+import { BookOpen, Building2, CalendarClock, ClipboardCheck, History, Flag, Gem, Globe, Images, LayoutDashboard, Menu, Package, UserCog, Users, X, type LucideIcon } from 'lucide-react';
 import { cx } from './ui';
 
-type Item = { href: string; label: string; icon: LucideIcon; ready?: boolean; adminOrEditor?: boolean };
+type Item = { href: string; label: string; icon: LucideIcon; ready?: boolean; adminOrEditor?: boolean; adminOnly?: boolean };
 const SECTIONS: { label: string; items: Item[] }[] = [
   {
     label: 'Văn hóa',
@@ -28,16 +28,17 @@ const SECTIONS: { label: string; items: Item[] }[] = [
       { href: 'atlas', label: 'Culture Atlas', icon: Globe, ready: true, adminOrEditor: true },
       { href: 'settings/profile', label: 'Hồ sơ doanh nghiệp', icon: Building2, ready: true },
       { href: 'settings/members', label: 'Thành viên', icon: UserCog, ready: true, adminOrEditor: true },
+      { href: 'settings/activity', label: 'Nhật ký hoạt động', icon: History, ready: true, adminOnly: true },
     ],
   },
 ];
 
-function NavList({ orgId, canSeeAdmin, compact, onNavigate }: { orgId: string; canSeeAdmin: boolean; compact: boolean; onNavigate?: () => void }) {
+function NavList({ orgId, canSeeAdmin, isAdmin, compact, onNavigate }: { orgId: string; canSeeAdmin: boolean; isAdmin: boolean; compact: boolean; onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
     <nav className="flex flex-col gap-1 px-2">
       {SECTIONS.map((s) => {
-        const items = s.items.filter((i) => !i.adminOrEditor || canSeeAdmin);
+        const items = s.items.filter((i) => (!i.adminOrEditor || canSeeAdmin) && (!i.adminOnly || isAdmin));
         if (!items.length) return null;
         return (
           <div key={s.label} className="flex flex-col gap-1">
@@ -83,7 +84,7 @@ function Brand({ compact }: { compact: boolean }) {
   );
 }
 
-export function Sidebar({ orgId, canSeeAdmin }: { orgId: string; canSeeAdmin: boolean }) {
+export function Sidebar({ orgId, canSeeAdmin, isAdmin }: { orgId: string; canSeeAdmin: boolean; isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   useEffect(() => setOpen(false), [pathname]);
@@ -91,7 +92,7 @@ export function Sidebar({ orgId, canSeeAdmin }: { orgId: string; canSeeAdmin: bo
     <>
       <aside className="sticky top-0 hidden h-screen w-sidebar-collapsed shrink-0 flex-col overflow-y-auto bg-primary md:flex lg:w-sidebar">
         <Brand compact />
-        <NavList orgId={orgId} canSeeAdmin={canSeeAdmin} compact />
+        <NavList orgId={orgId} canSeeAdmin={canSeeAdmin} isAdmin={isAdmin} compact />
       </aside>
 
       <button type="button" className="fixed left-3 top-2 z-[10] inline-flex size-10 items-center justify-center rounded-md text-ink hover:bg-canvas-section md:hidden" aria-label="Mở menu" onClick={() => setOpen(true)}>
@@ -107,7 +108,7 @@ export function Sidebar({ orgId, canSeeAdmin }: { orgId: string; canSeeAdmin: bo
                 <X size={24} strokeWidth={1.5} aria-hidden />
               </button>
             </div>
-            <NavList orgId={orgId} canSeeAdmin={canSeeAdmin} compact={false} onNavigate={() => setOpen(false)} />
+            <NavList orgId={orgId} canSeeAdmin={canSeeAdmin} isAdmin={isAdmin} compact={false} onNavigate={() => setOpen(false)} />
           </aside>
         </div>
       )}

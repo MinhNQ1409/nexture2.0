@@ -11,7 +11,7 @@ export default async function OrgLayout({ children, params }: { children: React.
   const me = await getMe(ctx);
   return (
     <div className="flex min-h-screen">
-      <Sidebar orgId={orgId} canSeeAdmin={org.myRole !== 'VIEWER'} />
+      <Sidebar orgId={orgId} canSeeAdmin={org.myRole !== 'VIEWER'} isAdmin={org.myRole === 'ADMIN'} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar org={{ id: org.id, name: org.name }} orgs={me.organizations} user={{ name: ctx.user.name, email: ctx.user.email }} />
         <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>

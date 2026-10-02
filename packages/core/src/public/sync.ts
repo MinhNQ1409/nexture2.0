@@ -358,8 +358,10 @@ async function rebuildCompany(tx: Tx, storage: Storage | undefined, org: OrgRow,
     publicEntityCount: n,
     firstPublishedAt: org.atlasFirstEnabledAt ?? new Date(),
     updatedAt: new Date(),
-    searchText: sql`atlas.f_search_norm(${[org.name, org.shortDescVi ?? ''].join(' ')})`,
+    searchText: sql`''`,
   };
+  // 02-database.sql: name + short desc + industry + province.
+  row.searchText = sql`atlas.f_search_norm(${[org.name, org.shortDescVi ?? '', row.industryName ?? '', row.provinceName ?? ''].join(' ')})`;
   await tx.insert(a.companies).values(row).onConflictDoUpdate({ target: a.companies.orgId, set: { ...row, orgId: undefined } });
   await tx.delete(a.tombstones).where(eq(a.tombstones.path, `/companies/${org.slug}`));
   out.tags.add(`company:${org.slug}`).add('home').add('companies');

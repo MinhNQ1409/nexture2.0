@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useState } from 'react';
-import { Building2, ChevronDown, LogOut } from 'lucide-react';
+import { Building2, ChevronDown, LogOut, Search } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 
 type Org = { id: string; name: string };
@@ -39,7 +39,16 @@ export function Topbar({ org, orgs, user }: { org: Org; orgs: Org[]; user: { nam
           </ul>
         )}
       </div>
+      <form action={`/o/${org.id}/search`} role="search" className="hidden max-w-sm flex-1 md:block">
+        <label className="flex min-h-10 items-center gap-2 rounded-md border border-hairline bg-canvas px-3 focus-within:border-primary">
+          <Search size={16} strokeWidth={1.5} className="shrink-0 text-ink-mute" aria-hidden />
+          <input name="q" maxLength={100} placeholder="Tìm trong Hub" aria-label="Tìm trong Hub" className="w-full bg-transparent text-body-md outline-none" />
+        </label>
+      </form>
       <div className="flex items-center gap-3">
+        <Link href={`/o/${org.id}/search`} aria-label="Tìm kiếm" className="rounded-md p-2 text-ink-mute hover:bg-canvas-section md:hidden">
+          <Search size={20} strokeWidth={1.5} aria-hidden />
+        </Link>
         <div className="hidden text-right sm:block">
           <p className="text-body-md font-semibold leading-tight">{user.name}</p>
           <p className="text-caption text-ink-mute">{user.email}</p>

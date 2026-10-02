@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { getCompanies } from '@/lib/queries';
 import { CompanyCard } from './company-card';
+import { SearchBox } from './search-box';
 
 // Rendered per request so builds never need the database; data itself is cached by tag in lib/queries.ts.
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,7 @@ export default async function Home() {
       <section className="flex flex-col gap-4">
         <h1 className="max-w-[900px] text-display-lg md:text-display-xl">Vietnam Enterprise Culture Atlas</h1>
         <p className="max-w-reading text-body-lg text-ink-mute">Khám phá những câu chuyện, con người, sản phẩm và dấu mốc tạo nên các doanh nghiệp Việt Nam.</p>
+        <SearchBox large />
         <p className="tabular text-caption text-ink-mute">{companies.length.toLocaleString('vi-VN')} doanh nghiệp</p>
       </section>
       {companies.length > 0 && (

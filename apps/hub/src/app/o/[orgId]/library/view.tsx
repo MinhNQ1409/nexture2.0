@@ -16,9 +16,9 @@ type Page = { items: Item[]; total: number; page: number; pageSize: number };
 const ACCEPT = 'image/png,image/jpeg,image/webp,application/pdf,video/mp4,audio/mpeg';
 const sizeLabel = (b: number) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 
-export function LibraryView({ orgId, canUpload, initial }: { orgId: string; canUpload: boolean; initial: Page }) {
+export function LibraryView({ orgId, canUpload, initial, initialQ = '' }: { orgId: string; canUpload: boolean; initial: Page; initialQ?: string }) {
   const [data, setData] = useState(initial);
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(initialQ);
   const [kind, setKind] = useState('');
   const [status, setStatus] = useState('');
   const [visibility, setVisibility] = useState('');
