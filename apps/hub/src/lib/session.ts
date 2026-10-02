@@ -2,7 +2,7 @@ import 'server-only';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Actor, Ctx } from '@nexture/core';
-import { auth } from './auth';
+import { adminEmails, auth } from './auth';
 import { db } from './db';
 import { atlasNotifier, storage } from './storage';
 
@@ -10,8 +10,10 @@ export async function getSession() {
   return auth.api.getSession({ headers: await headers() });
 }
 
-export function actorOf(user: { id: string; platformRole?: unknown }): Actor {
-  return { userId: user.id, platformRole: user.platformRole === 'NEXTURE_ADMIN' ? 'NEXTURE_ADMIN' : 'USER' };
+/** NEXTURE_ADMIN from the stored role, or from NEXTURE_ADMIN_EMAILS for accounts created before the list was set. */
+export function actorOf(user: { id: string; email: string; platformRole?: unknown }): Actor {
+  const admin = user.platformRole === 'NEXTURE_ADMIN' || adminEmails().includes(user.email.toLowerCase());
+  return { userId: user.id, platformRole: admin ? 'NEXTURE_ADMIN' : 'USER' };
 }
 
 /** For server components: redirects to /login when signed out. */

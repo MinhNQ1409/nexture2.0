@@ -6,7 +6,7 @@ import { coreTables as t } from '@nexture/db';
 import { db } from './db';
 import { sendEmail } from './email';
 
-const adminEmails = () =>
+export const adminEmails = () =>
   (process.env.NEXTURE_ADMIN_EMAILS ?? '')
     .split(',')
     .map((e) => e.trim().toLowerCase())
