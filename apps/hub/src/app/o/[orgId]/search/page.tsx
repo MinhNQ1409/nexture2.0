@@ -26,8 +26,10 @@ export default async function SearchPage({ params, searchParams }: { params: Pro
   const types = ([] as string[]).concat(sp.type ?? []);
   const status = String(sp.status ?? '');
   const personId = String(sp.personId ?? '');
+  const yearFrom = String(sp.yearFrom ?? '');
+  const yearTo = String(sp.yearTo ?? '');
   const [r, people] = await Promise.all([
-    searchOrg(ctx, orgId, { q, types: types.join(','), status, personId }),
+    searchOrg(ctx, orgId, { q, types: types.join(','), status, personId, yearFrom, yearTo }),
     listPeople(ctx, orgId, { pageSize: 100, sort: 'name_asc' }),
   ]);
 
@@ -67,6 +69,12 @@ export default async function SearchPage({ params, searchParams }: { params: Pro
               </option>
             ))}
           </select>
+          <span className="flex items-center gap-2 text-body-md">
+            Năm
+            <input name="yearFrom" defaultValue={yearFrom} inputMode="numeric" pattern="[0-9]{4}" maxLength={4} placeholder="từ" aria-label="Từ năm" className={`${control} w-20`} />
+            –
+            <input name="yearTo" defaultValue={yearTo} inputMode="numeric" pattern="[0-9]{4}" maxLength={4} placeholder="đến" aria-label="Đến năm" className={`${control} w-20`} />
+          </span>
         </div>
       </form>
 

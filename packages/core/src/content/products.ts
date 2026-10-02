@@ -38,6 +38,7 @@ export const PRODUCT_KIND = {
     title_asc: [asc(x.titleVi)],
   }),
   defaultSort: 'date_desc',
+  dateCol: (x) => x.launchDate,
   filters: (x: Tbl, q) => [q.kind && (PP_KINDS as readonly string[]).includes(q.kind) ? eq(x.kind, q.kind as ProductRow['kind']) : undefined],
 } satisfies KindDef<ProductRow>;
 

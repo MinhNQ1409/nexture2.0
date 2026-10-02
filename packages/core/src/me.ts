@@ -11,7 +11,7 @@ export async function getMe(ctx: Ctx) {
     .where(eq(t.user.id, ctx.actor.userId));
   if (!u) return fail('UNAUTHENTICATED');
   const organizations = await ctx.db
-    .select({ id: t.organizations.id, name: t.organizations.name, slug: t.organizations.slug, logoMediaId: t.organizations.logoMediaId, role: t.organizationMembers.role })
+    .select({ id: t.organizations.id, name: t.organizations.name, slug: t.organizations.slug, logoMediaId: t.organizations.logoMediaId, lockedAt: t.organizations.lockedAt, role: t.organizationMembers.role })
     .from(t.organizationMembers)
     .innerJoin(t.organizations, eq(t.organizations.id, t.organizationMembers.organizationId))
     .where(eq(t.organizationMembers.userId, ctx.actor.userId))

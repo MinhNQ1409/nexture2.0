@@ -1,6 +1,6 @@
 // Primitives built strictly from DESIGN.md component tokens (button-*, text-input, card-*, badge-*, table-*).
 import type { ComponentProps } from 'react';
-import { CircleAlert, CircleCheck } from 'lucide-react';
+import { CircleAlert, CircleCheck, X } from 'lucide-react';
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
@@ -108,3 +108,20 @@ export function PageHeader({ title, description, action }: { title: string; desc
 
 export const tableHead = 'bg-canvas-section text-left text-body-md font-semibold [&_th]:border-b [&_th]:border-hairline-strong [&_th]:px-4 [&_th]:py-3';
 export const tableRow = 'border-b border-hairline bg-canvas-white transition-colors hover:bg-primary-light [&_td]:px-4 [&_td]:py-3';
+
+/** Centered modal; closes on backdrop click. */
+export function Dialog({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={cx('flex max-h-[90vh] w-full flex-col gap-4 rounded-xl bg-canvas-white p-5 shadow-card', wide ? 'max-w-5xl' : 'max-w-lg')}>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-heading-md">{title}</h2>
+          <Button variant="ghost" size="sm" aria-label="Đóng" onClick={onClose}>
+            <X size={20} strokeWidth={1.5} aria-hidden />
+          </Button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}

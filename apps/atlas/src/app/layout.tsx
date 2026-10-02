@@ -18,7 +18,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex min-h-screen flex-col">
         <header className="sticky top-0 z-[10] border-b border-hairline bg-canvas-white">
           <nav className="mx-auto flex h-topbar w-full max-w-standard items-center gap-6 px-4 md:px-6">
-            <Link href="/" className="font-display text-heading-md text-primary">
+            <Link href="/" className="flex items-center gap-2 font-display text-heading-md text-primary">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/nexture-mark.png" alt="" width={30} height={22} />
               Culture Atlas
             </Link>
             <Link href="/companies" className="text-body-md font-semibold text-ink hover:text-primary">
@@ -32,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </header>
         <main className="mx-auto w-full max-w-standard flex-1 px-4 py-8 md:px-6 md:py-12">{children}</main>
         <footer className="bg-surface-dark py-4 text-caption text-on-dark-mute">
-          <div className="mx-auto w-full max-w-standard px-4 md:px-6">Vietnam Enterprise Culture Atlas · Nội dung do doanh nghiệp tự công bố</div>
+          <div className="mx-auto w-full max-w-standard px-4 md:px-6">Vietnam Enterprise Culture Atlas · Vận hành bởi NexTure · Nội dung do doanh nghiệp tự công bố</div>
         </footer>
       </body>
     </html>

@@ -61,6 +61,10 @@ export class S3Storage implements Storage {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.cfg.publicBucket, Key: publicKey }));
   }
 
+  async deletePrivate(key: string) {
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.cfg.privateBucket, Key: key }));
+  }
+
   async readPublic(publicKey: string) {
     try {
       const r = await this.client.send(new GetObjectCommand({ Bucket: this.cfg.publicBucket, Key: publicKey }));

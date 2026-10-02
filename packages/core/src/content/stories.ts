@@ -37,6 +37,7 @@ export const STORY_KIND = {
     title_asc: [asc(x.titleVi)],
   }),
   defaultSort: 'updated_desc',
+  dateCol: (x) => x.storyDate,
   filters: (x: Tbl, q) => [q.storyType && (STORY_TYPES as readonly string[]).includes(q.storyType) ? eq(x.storyType, q.storyType as StoryRow['storyType']) : undefined],
 } satisfies KindDef<StoryRow>;
 

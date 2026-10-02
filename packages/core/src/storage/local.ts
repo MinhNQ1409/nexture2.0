@@ -66,6 +66,10 @@ export class LocalStorage implements Storage {
     await rm(this.filePath('public', publicKey), { force: true });
   }
 
+  async deletePrivate(key: string) {
+    await rm(this.filePath('private', key), { force: true });
+  }
+
   async readPublic(publicKey: string) {
     try {
       return await readFile(this.filePath('public', publicKey));

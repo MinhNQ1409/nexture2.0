@@ -1,12 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { useState } from 'react';
-import { Building2, ChevronDown, LogOut, Search } from 'lucide-react';
+import { Building2, ChevronDown, LogOut, Search, ShieldCheck } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 
 type Org = { id: string; name: string };
 
-export function Topbar({ org, orgs, user }: { org: Org; orgs: Org[]; user: { name: string; email: string } }) {
+export function Topbar({ org, orgs, user, isNexture }: { org: Org; orgs: Org[]; user: { name: string; email: string }; isNexture?: boolean }) {
   const [open, setOpen] = useState(false);
   const initials = user.name
     .split(/\s+/)
@@ -46,6 +46,12 @@ export function Topbar({ org, orgs, user }: { org: Org; orgs: Org[]; user: { nam
         </label>
       </form>
       <div className="flex items-center gap-3">
+        {isNexture && (
+          <Link href="/nexture-admin" className="inline-flex items-center gap-2 rounded-md px-2 py-2 text-body-md font-semibold text-primary hover:bg-primary-light">
+            <ShieldCheck size={18} strokeWidth={1.5} aria-hidden />
+            <span className="hidden lg:inline">Quản trị NexTure</span>
+          </Link>
+        )}
         <Link href={`/o/${org.id}/search`} aria-label="Tìm kiếm" className="rounded-md p-2 text-ink-mute hover:bg-canvas-section md:hidden">
           <Search size={20} strokeWidth={1.5} aria-hidden />
         </Link>

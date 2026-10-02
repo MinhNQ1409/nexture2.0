@@ -1,7 +1,7 @@
 // Shared machinery for the four content kinds (Story, Event, Person, Product/Project):
 // load with role filter, DTO, create/patch/delete wrappers, list, related items.
 // Each kind file (stories.ts, events.ts, people.ts, products.ts) supplies a KindDef with its own columns.
-import { and, count, eq, inArray, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
+import { and, count, eq, inArray, isNull, ne, or, sql, type AnyColumn, type SQL } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import type { Tx } from '@nexture/db';
 import { coreTables as t } from '@nexture/db';
@@ -10,6 +10,8 @@ import { diff, logActivity } from '../activity';
 import { canOrg, entityPermissions } from '../authz';
 import { requireMember, type Ctx, type DbOrTx } from '../context';
 import { fail } from '../errors';
+import { yearConds } from '../filters';
+import { entitySources } from './source-list';
 import { entityMediaList, mediaRefById } from '../media';
 import { flushRevalidate } from '../public/flush';
 import { publicState } from '../public/rules';
@@ -46,6 +48,8 @@ export interface KindDef<R extends { id: string } = any, F extends Record<string
   searchText(tbl: any): SQL;
   sorts(tbl: any): Record<string, SQL[]>;
   defaultSort: string;
+  /** Main date column, used by the year filter. */
+  dateCol(tbl: any): SQL | AnyColumn;
   filters?(tbl: any, query: Record<string, string | undefined>): (SQL | undefined)[];
 }
 
@@ -153,7 +157,7 @@ export async function contentDto<R extends BaseRow, F extends Record<string, unk
     permissions: entityPermissions(role, ctx.actor.userId, e),
     related: await relatedOf(ctx.db, role, e.organizationId, def.type, e.id),
     media: await entityMediaList(ctx, e.organizationId, def.type, e.id, role),
-    sources: [] as unknown[],
+    sources: await entitySources(ctx, ctx.db, def.type, e.id, role),
   };
 }
 export type BaseContentDto = Awaited<ReturnType<typeof contentDto<BaseRow, Record<string, unknown>>>>;
@@ -322,6 +326,7 @@ export async function listContent(ctx: Ctx, def: KindDef, orgId: string, query: 
   if (typeof query.personId === 'string' && uuid.test(query.personId) && def.type !== 'PERSON') {
     conds.push(sql`${tbl.id} IN (SELECT target_id FROM core.relationships WHERE source_type = 'PERSON' AND source_id = ${query.personId})`);
   }
+  conds.push(...yearConds(def.dateCol(def.table), query.yearFrom, query.yearTo));
   const q = query.q?.trim();
   if (q && q.length >= 2) {
     conds.push(sql`core.f_search_norm(${def.searchText(def.table)}) LIKE '%' || core.f_search_norm(${q}) || '%'`);

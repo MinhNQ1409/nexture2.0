@@ -155,7 +155,7 @@ export async function listActivity(ctx: Ctx, orgId: string, query: { page?: stri
 }
 
 const SEARCH_KINDS = { STORY: 'stories', EVENT: 'events', PERSON: 'people', PRODUCT_PROJECT: 'products' } as const;
-export type SearchQuery = { q?: string; types?: string; status?: string; personId?: string };
+export type SearchQuery = { q?: string; types?: string; status?: string; personId?: string; yearFrom?: string; yearTo?: string };
 
 /** Hub search (06 §13): up to 20 hits per kind, accent-insensitive. */
 export async function searchOrg(ctx: Ctx, orgId: string, query: SearchQuery = {}) {
@@ -167,11 +167,11 @@ export async function searchOrg(ctx: Ctx, orgId: string, query: SearchQuery = {}
   const groups: { type: string; collection: string; total: number; items: { id: string; title: string; subtitle: string | null; status: string; thumbnailUrl: string | null }[] }[] = [];
   for (const [type, collection] of Object.entries(SEARCH_KINDS)) {
     if (!pick(type)) continue;
-    const r = await listContent(ctx, KINDS[collection]!, orgId, { q, pageSize: 20, status: query.status || undefined, personId: query.personId || undefined });
+    const r = await listContent(ctx, KINDS[collection]!, orgId, { q, pageSize: 20, status: query.status || undefined, personId: query.personId || undefined, yearFrom: query.yearFrom, yearTo: query.yearTo });
     if (r.total) groups.push({ type, collection, total: r.total, items: r.items.map((i) => ({ id: i.id, title: i.title, subtitle: i.subtitle, status: i.status, thumbnailUrl: i.thumbnailUrl })) });
   }
   if (pick('MEDIA') && !query.personId) {
-    const r = await listMedia(ctx, orgId, { q, pageSize: 20, status: query.status || undefined });
+    const r = await listMedia(ctx, orgId, { q, pageSize: 20, status: query.status || undefined, yearFrom: query.yearFrom, yearTo: query.yearTo });
     if (r.total) groups.push({ type: 'MEDIA', collection: 'library', total: r.total, items: r.items.map((m) => ({ id: m.id, title: m.title, subtitle: null, status: m.status, thumbnailUrl: m.kind === 'IMAGE' ? m.url : null })) });
   }
   return { q, groups };

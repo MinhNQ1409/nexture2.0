@@ -8,6 +8,7 @@ import { diff, logActivity } from './activity';
 import { canOrg, entityPermissions } from './authz';
 import { requireMember, requireStorage, type Ctx } from './context';
 import { fail } from './errors';
+import { yearConds } from './filters';
 import { makeSlug } from './slug';
 import { parse } from './validate';
 import { flushRevalidate } from './public/flush';
@@ -106,7 +107,7 @@ export async function mediaRefById(ctx: Ctx, orgId: string, id: string | null) {
 const visibleMedia = (role: OrgRole): SQL | undefined =>
   role === 'VIEWER' ? and(eq(t.mediaAssets.status, 'VERIFIED'), ne(t.mediaAssets.visibility, 'PRIVATE')) : undefined;
 
-export type MediaListQuery = { q?: string; kind?: string; status?: string; visibility?: string; page?: string | number; pageSize?: string | number };
+export type MediaListQuery = { q?: string; kind?: string; status?: string; visibility?: string; yearFrom?: string; yearTo?: string; page?: string | number; pageSize?: string | number };
 
 export async function listMedia(ctx: Ctx, orgId: string, query: MediaListQuery = {}) {
   const role = await requireMember(ctx.db, ctx.actor, orgId);
@@ -117,6 +118,7 @@ export async function listMedia(ctx: Ctx, orgId: string, query: MediaListQuery =
   if (kinds.length) conds.push(inArray(t.mediaAssets.kind, kinds));
   if (query.status) conds.push(eq(t.mediaAssets.status, query.status as MediaRow['status']));
   if (query.visibility) conds.push(eq(t.mediaAssets.visibility, query.visibility as MediaRow['visibility']));
+  conds.push(...yearConds(t.mediaAssets.occurredDate, query.yearFrom, query.yearTo));
   const q = query.q?.trim();
   if (q && q.length >= 2) conds.push(sql`core.f_search_norm(${t.mediaAssets.title} || ' ' || array_to_string(${t.mediaAssets.tags}, ' ')) LIKE '%' || core.f_search_norm(${q}) || '%'`);
   const where = and(...conds);

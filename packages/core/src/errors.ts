@@ -3,6 +3,7 @@
 export const ERRORS = {
   UNAUTHENTICATED: [401, 'Vui lòng đăng nhập lại.'],
   FORBIDDEN: [403, 'Bạn không có quyền thực hiện thao tác này.'],
+  ORG_LOCKED: [403, 'Doanh nghiệp này đang bị NexTure tạm khóa.'],
   INVITE_EMAIL_MISMATCH: [403, 'Lời mời này dành cho một email khác.'],
   NOT_FOUND: [404, 'Không tìm thấy nội dung.'],
   VERSION_CONFLICT: [409, 'Nội dung vừa được người khác cập nhật. Hãy tải lại trước khi lưu.'],

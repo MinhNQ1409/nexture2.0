@@ -45,6 +45,7 @@ export const PERSON_KIND = {
     joined_asc: [sql`${x.joinedDate} ASC NULLS LAST`, asc(x.fullName)],
   }),
   defaultSort: 'founder_first',
+  dateCol: (x) => x.joinedDate,
   filters: (x: Tbl, q) => [q.founder === '1' || q.founder === 'true' ? eq(x.isFounder, true) : undefined],
 } satisfies KindDef<PersonRow>;
 

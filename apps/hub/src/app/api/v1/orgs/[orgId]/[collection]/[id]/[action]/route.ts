@@ -1,5 +1,5 @@
 // Workflow for stories | events | people | products | media (05-api.yaml "workflow").
-import { AppError, setEntityMedia, setRelations, setVisibility, transition, type TransitionName } from '@nexture/core';
+import { AppError, publicPreview, setEntityMedia, setRelations, setVisibility, transition, type TransitionName } from '@nexture/core';
 import { body, route } from '@/lib/api';
 
 type P = { orgId: string; collection: string; id: string; action: string };
@@ -15,4 +15,9 @@ export const PUT = route<P>(async ({ req, ctx, params }) => {
   if (params.action === 'relations') return setRelations(ctx, params.collection, params.orgId, params.id, await body(req));
   if (params.action !== 'visibility') throw new AppError('NOT_FOUND');
   return setVisibility(ctx, params.collection, params.orgId, params.id, await body(req));
+});
+
+export const GET = route<P>(({ ctx, params }) => {
+  if (params.action !== 'public-preview') throw new AppError('NOT_FOUND');
+  return publicPreview(ctx, params.collection, params.orgId, params.id);
 });

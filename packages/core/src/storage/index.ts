@@ -12,6 +12,7 @@ export interface Storage {
   /** Copies a private object into the public bucket. */
   copyToPublic(privateKey: string, publicKey: string): Promise<void>;
   deletePublic(publicKey: string): Promise<void>;
+  deletePrivate(key: string): Promise<void>;
   publicUrl(publicKey: string): string;
   /** Bytes of a public object, or null when missing (Hub serves public files at /api/files/public). */
   readPublic(publicKey: string): Promise<Uint8Array | null>;

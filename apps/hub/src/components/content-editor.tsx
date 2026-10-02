@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, type ReactNode } from 'react';
 import { GalleryCard, type GalleryItem } from './gallery-card';
+import { PreviewDialog } from './preview-dialog';
 import { RelationsCard } from './relations-card';
+import { SourcesCard, type SourceItem } from './sources-card';
 import { proseClass } from './rich-text';
-import { ArrowLeft, ExternalLink, MessageSquareWarning } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Eye, MessageSquareWarning } from 'lucide-react';
 import { VISIBILITY_LABELS, type ContentStatus, type Visibility } from '@nexture/contracts';
 import { PublicStateBadge, StatusBadge, type PublicStateValue } from '@/components/badges';
 import { Alert, Button, Card, cx } from '@/components/ui';
@@ -42,6 +44,7 @@ export type ContentBase = {
   };
   cover: { id: string; url: string; title: string } | null;
   media: GalleryItem[];
+  sources: SourceItem[];
   related: { stories: RelatedItem[]; events: RelatedItem[]; people: RelatedItem[]; products: RelatedItem[]; values: RelatedItem[] };
 };
 
@@ -80,6 +83,7 @@ export function ContentEditor<E extends ContentBase, F>(props: {
   const [error, setError] = useState<ApiError | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState<'view' | 'publish' | null>(null);
   const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(saved), [form, saved]);
   const canEdit = !ev || ev.permissions.canEdit;
   const p = ev?.permissions;
@@ -128,9 +132,12 @@ export function ContentEditor<E extends ContentBase, F>(props: {
 
   function changeVisibility(v: Visibility) {
     if (!ev || v === ev.visibility) return;
-    if (v === 'PUBLIC' && !confirm(`Công khai ${noun} này? Nội dung (trừ ghi chú nội bộ) sẽ hiện trên Culture Atlas cho mọi người.`)) return;
+    if (v === 'PUBLIC') return setPreview('publish');
     if (ev.publicState === 'LIVE' && !confirm('Nội dung sẽ bị gỡ khỏi Atlas ngay.')) return;
-    run(() => api<E>(`${base}/${ev.id}/visibility`, { method: 'PUT', json: { version: ev.version, visibility: v } }));
+    setVisibility(v);
+  }
+  function setVisibility(v: Visibility) {
+    run(() => api<E>(`${base}/${ev!.id}/visibility`, { method: 'PUT', json: { version: ev!.version, visibility: v } }));
   }
 
   return (
@@ -192,6 +199,7 @@ export function ContentEditor<E extends ContentBase, F>(props: {
             />
           )}
           {ev && <GalleryCard orgId={orgId} collection={collection} entityId={ev.id} items={ev.media} canEdit={ev.permissions.canEdit} onChange={(media) => setEv({ ...ev, media })} />}
+          {ev && <SourcesCard orgId={orgId} collection={collection} entityId={ev.id} items={ev.sources} canEdit={ev.permissions.canEdit} onChange={(sources) => setEv({ ...ev, sources })} />}
         </div>
 
         {ev && (
@@ -285,6 +293,28 @@ export function ContentEditor<E extends ContentBase, F>(props: {
               })}
               {ev.publicState === 'WAITING_ORG' && <p className="text-caption text-warning">Sẽ hiển thị khi hồ sơ doanh nghiệp được bật trên Atlas.</p>}
               {ev.publicState === 'HIDDEN_BY_NEXTURE' && <p className="text-caption text-error">Bị NexTure ẩn: {ev.atlasHiddenReason}</p>}
+              {(isAdmin || p!.canEdit) && (
+                <Button variant="ghost-primary" size="sm" className="w-fit" onClick={() => setPreview('view')}>
+                  <Eye size={16} strokeWidth={1.5} aria-hidden />
+                  Xem trước trên Atlas
+                </Button>
+              )}
+              {preview && (
+                <PreviewDialog
+                  orgId={orgId}
+                  collection={collection}
+                  id={ev.id}
+                  onClose={() => setPreview(null)}
+                  onPublish={
+                    preview === 'publish'
+                      ? () => {
+                          setPreview(null);
+                          setVisibility('PUBLIC');
+                        }
+                      : undefined
+                  }
+                />
+              )}
               {ev.publicUrl && (
                 <a href={ev.publicUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-2 text-link underline hover:text-link-hover">
                   Xem trên Atlas

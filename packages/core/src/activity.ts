@@ -29,7 +29,11 @@ export type ActivityAction =
   | 'SOURCE_ADDED'
   | 'SOURCE_REMOVED'
   | 'ATLAS_HIDDEN_BY_NEXTURE'
-  | 'ATLAS_UNHIDDEN_BY_NEXTURE';
+  | 'ATLAS_UNHIDDEN_BY_NEXTURE'
+  | 'SOURCE_UPDATED'
+  | 'ORG_LOCKED'
+  | 'ORG_UNLOCKED'
+  | 'ORG_DELETED';
 
 export async function logActivity(
   db: DbOrTx,

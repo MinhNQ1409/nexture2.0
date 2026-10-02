@@ -65,7 +65,7 @@ async function linkedValueNames(tx: Tx, entityType: 'EVENT' | 'STORY', id: strin
   return rows.map((r) => r.name);
 }
 
-async function publicSources(tx: Tx, entityType: PublicEntityType, id: string) {
+export async function publicSources(tx: Tx, entityType: PublicEntityType, id: string) {
   const rows = await tx
     .select({ title: t.entitySources.title, url: t.entitySources.url, note: t.entitySources.note })
     .from(t.entitySources)
@@ -97,7 +97,7 @@ type Projection = {
 };
 
 /** 08 §3 whitelist, per type. */
-async function project(tx: Tx, type: PublicEntityType, row: AnyRow): Promise<Projection> {
+export async function project(tx: Tx, type: PublicEntityType, row: AnyRow): Promise<Projection> {
   switch (type) {
     case 'STORY': {
       const s = row as StoryRow;
@@ -215,7 +215,7 @@ async function syncEntity(tx: Tx, storage: Storage | undefined, type: PublicEnti
 
 // ---------------------------------------------------------------- media (08 §4)
 type MediaRow = typeof t.mediaAssets.$inferSelect;
-const coverIdOf = (type: PublicEntityType, row: AnyRow): string | null =>
+export const coverIdOf = (type: PublicEntityType, row: AnyRow): string | null =>
   type === 'PERSON' ? (row as PersonRow).avatarMediaId : (row as StoryRow | EventRow | ProductRow).coverMediaId;
 
 /** 08 §4: eligible to be public. */
@@ -378,6 +378,7 @@ async function syncOrg(tx: Tx, storage: Storage | undefined, orgId: string, out:
     if (company) await tombstone(tx, `/companies/${org.slug}`);
     await tx.delete(a.entities).where(eq(a.entities.orgId, orgId));
     await tx.delete(a.companies).where(eq(a.companies.orgId, orgId));
+    await tx.delete(a.media).where(eq(a.media.orgId, orgId));
     const keys = await tx
       .select({ id: t.mediaAssets.id, key: t.mediaAssets.publicStorageKey })
       .from(t.mediaAssets)

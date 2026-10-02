@@ -77,9 +77,12 @@ function NavList({ orgId, canSeeAdmin, isAdmin, compact, onNavigate }: { orgId: 
 
 function Brand({ compact }: { compact: boolean }) {
   return (
-    <div className={cx('flex h-topbar items-center px-6 font-display text-heading-md text-on-primary', compact && 'justify-center px-0 lg:justify-start lg:px-6')}>
+    <div className={cx('flex h-topbar items-center gap-3 px-6 font-display text-heading-md text-on-primary', compact && 'justify-center px-0 lg:justify-start lg:px-6')}>
+      <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-canvas-white">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/nexture-mark.png" alt="" width={26} height={19} />
+      </span>
       <span className={cx(compact && 'hidden lg:inline')}>NexTure Hub</span>
-      {compact && <span className="lg:hidden">N</span>}
     </div>
   );
 }

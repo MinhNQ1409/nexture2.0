@@ -207,6 +207,27 @@ export const mediaPatch = z
 export const entityMediaInput = z.object({
   items: z.array(z.object({ mediaId: z.uuid(), caption: nullableText(300) })).max(50),
 });
+// Sources & evidence (05-api.yaml SourceInput): exactly one of mediaId / url.
+export const sourceInput = z
+  .object({
+    title: z.string().trim().min(1).max(300),
+    mediaId: z.uuid().nullish(),
+    url: z
+      .string()
+      .trim()
+      .max(2000)
+      .regex(/^https?:\/\//, 'Đường link phải bắt đầu bằng http:// hoặc https://')
+      .nullish(),
+    note: nullableText(1000),
+    isPublic: z.boolean().default(false),
+  })
+  .refine((v) => Boolean(v.mediaId) !== Boolean(v.url), { message: 'Chọn tư liệu hoặc nhập đường link', path: ['url'] });
+export const sourcePatch = z.object({
+  title: z.string().trim().min(1).max(300).optional(),
+  note: z.string().trim().max(1000).nullable().optional(),
+  isPublic: z.boolean().optional(),
+  sortOrder: z.number().int().optional(),
+});
 export const MEDIA_KIND_LABELS = { IMAGE: 'Ảnh', DOCUMENT: 'Tài liệu', VIDEO: 'Video', AUDIO: 'Âm thanh' } as const;
 
 // Activity log sentences (06 §5, §14.3): "{người} {hành động} {đối tượng}".
@@ -237,6 +258,10 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   SOURCE_REMOVED: 'đã gỡ nguồn của',
   ATLAS_HIDDEN_BY_NEXTURE: 'NexTure đã ẩn',
   ATLAS_UNHIDDEN_BY_NEXTURE: 'NexTure đã bỏ ẩn',
+  SOURCE_UPDATED: 'đã sửa nguồn của',
+  ORG_LOCKED: 'NexTure đã khóa',
+  ORG_UNLOCKED: 'NexTure đã mở khóa',
+  ORG_DELETED: 'NexTure đã xóa',
 };
 export const TARGET_TYPE_LABELS: Record<string, string> = {
   ORGANIZATION: 'doanh nghiệp',

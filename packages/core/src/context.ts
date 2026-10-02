@@ -15,13 +15,15 @@ export type Ctx = { db: Db; actor: Actor; storage?: Storage; atlas?: AtlasNotifi
 
 export type DbOrTx = Db | Tx;
 
-/** Returns the caller's role in the org; 404 when not a member (does not reveal the org exists). */
+/** Returns the caller's role in the org; 404 when not a member (does not reveal the org exists), ORG_LOCKED while NexTure locks it. */
 export async function requireMember(db: DbOrTx, actor: Actor, orgId: string): Promise<OrgRole> {
   const [row] = await db
-    .select({ role: t.organizationMembers.role })
+    .select({ role: t.organizationMembers.role, lockedAt: t.organizations.lockedAt, lockedReason: t.organizations.lockedReason })
     .from(t.organizationMembers)
+    .innerJoin(t.organizations, eq(t.organizations.id, t.organizationMembers.organizationId))
     .where(and(eq(t.organizationMembers.organizationId, orgId), eq(t.organizationMembers.userId, actor.userId)));
   if (!row) return fail('NOT_FOUND');
+  if (row.lockedAt) return fail('ORG_LOCKED', { reason: row.lockedReason });
   return row.role;
 }
 

@@ -6,17 +6,18 @@ import { db } from '@/lib/db';
 
 const TTL_MS = 60_000;
 const MAX_KEYS = 5000;
-const cache = new Map<string, { gone: boolean; at: number }>();
+// Only "not gone" is cached: a path that comes back (unhide, Atlas re-enabled) must stop answering 410 at once.
+const live = new Map<string, number>();
 
 async function isGone(path: string): Promise<boolean> {
-  const hit = cache.get(path);
-  if (hit && Date.now() - hit.at < TTL_MS) return hit.gone;
+  const at = live.get(path);
+  if (at && Date.now() - at < TTL_MS) return false;
   const r = await db().execute(sql`SELECT 1 FROM atlas.tombstones WHERE path = ${path}`);
-  const gone = r.rows.length > 0;
-  cache.delete(path);
-  cache.set(path, { gone, at: Date.now() });
-  if (cache.size > MAX_KEYS) cache.delete(cache.keys().next().value!);
-  return gone;
+  live.delete(path);
+  if (r.rows.length > 0) return true;
+  live.set(path, Date.now());
+  if (live.size > MAX_KEYS) live.delete(live.keys().next().value!);
+  return false;
 }
 
 const GONE_HTML = `<!doctype html><html lang="vi"><meta charset="utf-8"><title>Không còn hiển thị · Culture Atlas</title>

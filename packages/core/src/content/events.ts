@@ -54,6 +54,7 @@ export const EVENT_KIND = {
     title_asc: [asc(x.titleVi)],
   }),
   defaultSort: 'date_asc',
+  dateCol: (x) => x.startDate,
   filters: (x: Tbl, q) => [
     q.eventType && (EVENT_TYPES as readonly string[]).includes(q.eventType) ? eq(x.eventType, q.eventType as EventRow['eventType']) : undefined,
   ],
