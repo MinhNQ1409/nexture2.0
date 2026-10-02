@@ -5,8 +5,8 @@ import { formatFuzzyDate } from '@nexture/contracts';
 import { CoverField } from '@/components/media-picker';
 import { ContentEditor, Html, InternalNotesField, type ContentBase } from '@/components/content-editor';
 import { OptionalDate, thisYear, type FuzzyValue } from '@/components/fuzzy-date';
-import { Field, Input, Textarea } from '@/components/ui';
-import { htmlToText, textToHtml } from '@/lib/plain-html';
+import { Field, Input } from '@/components/ui';
+import { RichText } from '@/components/rich-text';
 
 type Pe = PersonDto & ContentBase;
 type Form = {
@@ -31,8 +31,8 @@ const toForm = (p: Pe | null, founder = false): Form => ({
   joinedDate: p?.joinedDate ?? thisYear(),
   hasLeft: Boolean(p?.leftDate),
   leftDate: p?.leftDate ?? thisYear(),
-  bio: htmlToText(p?.bioVi ?? null),
-  contributions: htmlToText(p?.contributionsVi ?? null),
+  bio: p?.bioVi ?? '',
+  contributions: p?.contributionsVi ?? '',
   internalNotes: p?.internalNotes ?? '',
   cover: p?.cover?.id ?? null,
 });
@@ -55,8 +55,8 @@ export function PersonEditor({ orgId, isAdmin, person, founder }: { orgId: strin
         isFounder: f.isFounder,
         joinedDate: f.hasJoined ? f.joinedDate : null,
         leftDate: f.hasLeft ? f.leftDate : null,
-        bioVi: textToHtml(f.bio) || null,
-        contributionsVi: textToHtml(f.contributions) || null,
+        bioVi: f.bio || null,
+        contributionsVi: f.contributions || null,
         internalNotes: f.internalNotes || null,
         avatarMediaId: f.cover,
       })}
@@ -78,12 +78,8 @@ export function PersonEditor({ orgId, isAdmin, person, founder }: { orgId: strin
             <OptionalDate label="Có thời gian gia nhập" on={form.hasJoined} value={form.joinedDate} onToggle={(v) => set('hasJoined', v)} onChange={(v) => set('joinedDate', v)} />
             <OptionalDate label="Đã rời doanh nghiệp" on={form.hasLeft} value={form.leftDate} onToggle={(v) => set('hasLeft', v)} onChange={(v) => set('leftDate', v)} error={err('leftDate')} />
           </div>
-          <Field label="Tiểu sử" hint="Xuống dòng hai lần để tách đoạn.">
-            <Textarea rows={6} value={form.bio} onChange={(e) => set('bio', e.target.value)} />
-          </Field>
-          <Field label="Đóng góp nổi bật">
-            <Textarea rows={4} value={form.contributions} onChange={(e) => set('contributions', e.target.value)} />
-          </Field>
+          <RichText label="Tiểu sử" value={form.bio} onChange={(v) => set('bio', v)} />
+          <RichText label="Đóng góp nổi bật" minRows={3} value={form.contributions} onChange={(v) => set('contributions', v)} />
           <CoverField orgId={orgId} label="Ảnh đại diện" value={form.cover} initial={person?.cover ?? null} round onChange={(id) => set('cover', id)} />
           <InternalNotesField value={form.internalNotes} onChange={(v) => set('internalNotes', v)} />
           <p className="text-caption text-ink-mute">Không nhập thông tin liên hệ cá nhân (số điện thoại, email, địa chỉ nhà).</p>

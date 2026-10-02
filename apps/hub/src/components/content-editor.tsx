@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState, type ReactNode } from 'react';
 import { GalleryCard, type GalleryItem } from './gallery-card';
 import { RelationsCard } from './relations-card';
+import { proseClass } from './rich-text';
 import { ArrowLeft, ExternalLink, MessageSquareWarning } from 'lucide-react';
 import { VISIBILITY_LABELS, type ContentStatus, type Visibility } from '@nexture/contracts';
 import { PublicStateBadge, StatusBadge, type PublicStateValue } from '@/components/badges';
@@ -339,5 +340,5 @@ export function InternalNotesField({ value, onChange, children }: { value: strin
 /** Rendered rich text in read mode (HTML is sanitized on save). */
 export function Html({ html, className }: { html: string | null; className?: string }) {
   if (!html) return null;
-  return <div className={cx('flex flex-col gap-3 text-body-md [&_a]:text-link [&_a]:underline', className)} dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div className={cx(proseClass, className)} dangerouslySetInnerHTML={{ __html: html }} />;
 }

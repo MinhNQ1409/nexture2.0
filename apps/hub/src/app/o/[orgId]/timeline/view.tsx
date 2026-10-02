@@ -64,6 +64,8 @@ export function TimelineView({ orgId, canSeeUnverified, canCreate, initial, peop
   }, [orgId, eventType, personId, valueId, unverified]);
 
   const filtered = Boolean(eventType || personId || valueId);
+  // Alternate sides across the whole axis, not per year.
+  const side = new Map(years.flatMap((y) => y.items).map((e, i) => [e.id, i % 2]));
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -136,10 +138,10 @@ export function TimelineView({ orgId, canSeeUnverified, canCreate, initial, peop
             <section key={y.year} className="flex flex-col gap-4">
               <h2 className="relative z-[1] w-fit rounded-pill bg-canvas px-3 font-display text-display-md md:mx-auto">{y.year}</h2>
               <ol className="flex flex-col gap-4">
-                {y.items.map((e, i) => (
-                  <li key={e.id} className={cx('relative md:w-1/2', i % 2 === 0 ? 'md:pr-8' : 'md:ml-auto md:pl-8')}>
+                {y.items.map((e) => (
+                  <li key={e.id} className={cx('relative md:w-1/2', side.get(e.id) === 0 ? 'md:pr-8' : 'md:ml-auto md:pl-8')}>
                     <span
-                      className={cx('absolute top-5 size-3 rounded-full ring-4 ring-canvas', DOT[e.eventType], '-left-[26px]', i % 2 === 0 ? 'md:left-auto md:-right-1.5' : 'md:-left-1.5')}
+                      className={cx('absolute top-5 size-3 rounded-full ring-4 ring-canvas', DOT[e.eventType], '-left-[26px]', side.get(e.id) === 0 ? 'md:left-auto md:-right-1.5' : 'md:-left-1.5')}
                       aria-hidden
                     />
                     <button type="button" onClick={() => setOpen(e.id)} className="flex w-full gap-3 rounded-lg border border-hairline bg-canvas-white p-4 text-left shadow-card transition-colors hover:border-primary">

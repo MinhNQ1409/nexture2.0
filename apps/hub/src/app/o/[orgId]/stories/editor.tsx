@@ -9,7 +9,7 @@ import { ContentEditor, Html, InternalNotesField, type ContentBase } from '@/com
 import { OptionalDate, thisYear, type FuzzyValue } from '@/components/fuzzy-date';
 import { Card, Field, Input, Select, Textarea } from '@/components/ui';
 import { api } from '@/lib/fetcher';
-import { htmlToText, textToHtml } from '@/lib/plain-html';
+import { RichText } from '@/components/rich-text';
 
 type St = StoryDto & ContentBase;
 type Form = { storyType: StoryType; titleVi: string; hasDate: boolean; storyDate: FuzzyValue; summaryVi: string; content: string; internalNotes: string; cover: string | null };
@@ -20,7 +20,7 @@ const toForm = (s: St | null, defaultType: StoryType = 'CULTURE'): Form => ({
   hasDate: Boolean(s?.storyDate),
   storyDate: s?.storyDate ?? thisYear(),
   summaryVi: s?.summaryVi ?? '',
-  content: htmlToText(s?.contentVi ?? null),
+  content: s?.contentVi ?? '',
   internalNotes: s?.internalNotes ?? '',
   cover: s?.cover?.id ?? null,
 });
@@ -73,7 +73,7 @@ export function StoryEditor({ orgId, isAdmin, story, featured, defaultType }: { 
         titleVi: f.titleVi,
         storyDate: f.hasDate ? f.storyDate : null,
         summaryVi: f.summaryVi || null,
-        contentVi: textToHtml(f.content) || null,
+        contentVi: f.content || null,
         internalNotes: f.internalNotes || null,
         coverMediaId: f.cover,
       })}
@@ -96,9 +96,7 @@ export function StoryEditor({ orgId, isAdmin, story, featured, defaultType }: { 
           <Field label={`Tóm tắt (${form.summaryVi.length}/500)`} hint="Cần có trước khi gửi duyệt." error={err('summaryVi')}>
             <Textarea rows={2} maxLength={500} value={form.summaryVi} onChange={(e) => set('summaryVi', e.target.value)} />
           </Field>
-          <Field label="Nội dung" hint="Cần có trước khi gửi duyệt. Xuống dòng hai lần để tách đoạn." error={err('contentVi')}>
-            <Textarea rows={10} value={form.content} onChange={(e) => set('content', e.target.value)} />
-          </Field>
+          <RichText label="Nội dung" hint="Cần có trước khi gửi duyệt." minRows={10} value={form.content} onChange={(v) => set('content', v)} error={err('contentVi')} />
           <div className="grid gap-4 sm:grid-cols-2">
             <OptionalDate label="Gắn với thời điểm" on={form.hasDate} value={form.storyDate} onToggle={(v) => set('hasDate', v)} onChange={(v) => set('storyDate', v)} />
           </div>

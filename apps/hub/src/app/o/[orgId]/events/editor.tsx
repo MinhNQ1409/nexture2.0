@@ -6,7 +6,7 @@ import { CoverField } from '@/components/media-picker';
 import { ContentEditor, Html, InternalNotesField, type ContentBase } from '@/components/content-editor';
 import { FuzzyDateInput, OptionalDate, thisYear, type FuzzyValue } from '@/components/fuzzy-date';
 import { Field, Input, Select, Textarea } from '@/components/ui';
-import { htmlToText, textToHtml } from '@/lib/plain-html';
+import { RichText } from '@/components/rich-text';
 
 type Ev = EventDto & ContentBase;
 type Form = { eventType: EventType; titleVi: string; startDate: FuzzyValue; hasEnd: boolean; endDate: FuzzyValue; summaryVi: string; content: string; internalNotes: string; cover: string | null };
@@ -18,7 +18,7 @@ const toForm = (e: Ev | null): Form => ({
   hasEnd: Boolean(e?.endDate),
   endDate: e?.endDate ?? thisYear(),
   summaryVi: e?.summaryVi ?? '',
-  content: htmlToText(e?.contentVi ?? null),
+  content: e?.contentVi ?? '',
   internalNotes: e?.internalNotes ?? '',
   cover: e?.cover?.id ?? null,
 });
@@ -41,7 +41,7 @@ export function EventEditor({ orgId, isAdmin, event }: { orgId: string; isAdmin:
         startDate: f.startDate,
         endDate: f.hasEnd ? f.endDate : null,
         summaryVi: f.summaryVi || null,
-        contentVi: textToHtml(f.content) || null,
+        contentVi: f.content || null,
         internalNotes: f.internalNotes || null,
         coverMediaId: f.cover,
       })}
@@ -70,9 +70,7 @@ export function EventEditor({ orgId, isAdmin, event }: { orgId: string; isAdmin:
           <Field label={`Tóm tắt (${form.summaryVi.length}/500)`} error={err('summaryVi')}>
             <Textarea rows={2} maxLength={500} value={form.summaryVi} onChange={(e) => set('summaryVi', e.target.value)} />
           </Field>
-          <Field label="Nội dung" hint="Xuống dòng hai lần để tách đoạn.">
-            <Textarea rows={8} value={form.content} onChange={(e) => set('content', e.target.value)} />
-          </Field>
+          <RichText label="Nội dung" value={form.content} onChange={(v) => set('content', v)} />
           <CoverField orgId={orgId} label="Ảnh bìa" value={form.cover} initial={event?.cover ?? null} onChange={(id) => set('cover', id)} />
           <InternalNotesField value={form.internalNotes} onChange={(v) => set('internalNotes', v)} />
         </>

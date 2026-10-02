@@ -6,7 +6,7 @@ import { CoverField } from '@/components/media-picker';
 import { ContentEditor, Html, InternalNotesField, type ContentBase } from '@/components/content-editor';
 import { OptionalDate, thisYear, type FuzzyValue } from '@/components/fuzzy-date';
 import { Field, Input, Select, Textarea } from '@/components/ui';
-import { htmlToText, textToHtml } from '@/lib/plain-html';
+import { RichText } from '@/components/rich-text';
 
 type Pr = ProductDto & ContentBase;
 type Form = { kind: PpKind; titleVi: string; summaryVi: string; hasLaunch: boolean; launchDate: FuzzyValue; ppStatus: PpStatus; description: string; internalNotes: string; cover: string | null };
@@ -18,7 +18,7 @@ const toForm = (p: Pr | null, kind: PpKind = 'PRODUCT'): Form => ({
   hasLaunch: Boolean(p?.launchDate),
   launchDate: p?.launchDate ?? thisYear(),
   ppStatus: p?.ppStatus ?? 'ACTIVE',
-  description: htmlToText(p?.descriptionVi ?? null),
+  description: p?.descriptionVi ?? '',
   internalNotes: p?.internalNotes ?? '',
   cover: p?.cover?.id ?? null,
 });
@@ -41,7 +41,7 @@ export function ProductEditor({ orgId, isAdmin, product, kind }: { orgId: string
         summaryVi: f.summaryVi || null,
         launchDate: f.hasLaunch ? f.launchDate : null,
         ppStatus: f.ppStatus,
-        descriptionVi: textToHtml(f.description) || null,
+        descriptionVi: f.description || null,
         internalNotes: f.internalNotes || null,
         coverMediaId: f.cover,
       })}
@@ -82,9 +82,7 @@ export function ProductEditor({ orgId, isAdmin, product, kind }: { orgId: string
               </Select>
             </Field>
           </div>
-          <Field label="Mô tả" hint="Xuống dòng hai lần để tách đoạn.">
-            <Textarea rows={8} value={form.description} onChange={(e) => set('description', e.target.value)} />
-          </Field>
+          <RichText label="Mô tả" value={form.description} onChange={(v) => set('description', v)} />
           <CoverField orgId={orgId} label="Ảnh bìa" value={form.cover} initial={product?.cover ?? null} onChange={(id) => set('cover', id)} />
           <InternalNotesField value={form.internalNotes} onChange={(v) => set('internalNotes', v)} />
         </>
