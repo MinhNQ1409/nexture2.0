@@ -187,14 +187,14 @@ async function syncEntity(tx: Tx, storage: Storage | undefined, type: PublicEnti
       companySlug: org.slug,
       companyName: org.name,
       ...p,
-      coverUrl: null, // cover media sync arrives with the media library step
-      coverAlt: null,
+      ...(await publicCover(tx, storage, org, coverIdOf(type, e))),
       sources: await publicSources(tx, type, id),
       publishedAt: existing?.publishedAt ?? new Date(),
       updatedAt: new Date(),
       searchText: sql`atlas.f_search_norm(${[p.title, p.subtitle ?? '', p.summary ?? '', org.name].join(' ')})`,
     };
     await tx.insert(a.entities).values(row).onConflictDoUpdate({ target: a.entities.id, set: { ...row, id: undefined } });
+    await syncGallery(tx, storage, org, type, id);
     await tx.delete(a.tombstones).where(eq(a.tombstones.path, path));
     out.tags.add(`entity:${path}`);
     // Product <-> project switch: the old path redirects (308), it is not a tombstone (08 §5).
@@ -209,7 +209,87 @@ async function syncEntity(tx: Tx, storage: Storage | undefined, type: PublicEnti
   }
   await rebuildRelations(tx, org.id);
   await rebuildCompany(tx, storage, org, out);
+  await cleanupMedia(tx, org, out);
   out.tags.add(`company:${org.slug}`).add('home').add('companies');
+}
+
+// ---------------------------------------------------------------- media (08 §4)
+type MediaRow = typeof t.mediaAssets.$inferSelect;
+const coverIdOf = (type: PublicEntityType, row: AnyRow): string | null =>
+  type === 'PERSON' ? (row as PersonRow).avatarMediaId : (row as StoryRow | EventRow | ProductRow).coverMediaId;
+
+/** 08 §4: eligible to be public. */
+export const isMediaPublic = (m: Pick<MediaRow, 'deletedAt' | 'uploadStatus' | 'status' | 'visibility' | 'kind'>) =>
+  m.deletedAt === null && m.uploadStatus === 'READY' && m.status === 'VERIFIED' && m.visibility === 'PUBLIC' && (m.kind === 'IMAGE' || m.kind === 'VIDEO');
+
+/** Copies to the public bucket on first use (before commit) and upserts atlas.media; returns the public URL. */
+async function publishMedia(tx: Tx, storage: Storage, orgId: string, m: MediaRow): Promise<string> {
+  let key = m.publicStorageKey;
+  if (!key) {
+    key = `public/${m.id}/${m.storageKey.split('/').pop()}`;
+    await storage.copyToPublic(m.storageKey, key);
+    await tx.update(t.mediaAssets).set({ publicStorageKey: key }).where(eq(t.mediaAssets.id, m.id));
+  }
+  const url = storage.publicUrl(key);
+  const row = { id: m.id, orgId, kind: m.kind as 'IMAGE' | 'VIDEO', url, mimeType: m.mimeType, width: m.width, height: m.height, alt: m.altText, title: m.title };
+  await tx.insert(a.media).values(row).onConflictDoUpdate({ target: a.media.id, set: { ...row, id: undefined } });
+  return url;
+}
+
+async function publicCover(tx: Tx, storage: Storage | undefined, org: OrgRow, mediaId: string | null) {
+  if (!mediaId || !storage) return { coverUrl: null, coverAlt: null };
+  const [m] = await tx.select().from(t.mediaAssets).where(and(eq(t.mediaAssets.id, mediaId), eq(t.mediaAssets.organizationId, org.id)));
+  if (!m || !isMediaPublic(m) || m.kind !== 'IMAGE') return { coverUrl: null, coverAlt: null };
+  return { coverUrl: await publishMedia(tx, storage, org.id, m), coverAlt: m.altText ?? m.title };
+}
+
+async function syncGallery(tx: Tx, storage: Storage | undefined, org: OrgRow, type: PublicEntityType, id: string) {
+  await tx.delete(a.entityMedia).where(eq(a.entityMedia.entityId, id));
+  if (!storage) return;
+  const rows = await tx
+    .select({ m: t.mediaAssets, sortOrder: t.entityMedia.sortOrder, caption: t.entityMedia.caption })
+    .from(t.entityMedia)
+    .innerJoin(t.mediaAssets, eq(t.mediaAssets.id, t.entityMedia.mediaId))
+    .where(and(eq(t.entityMedia.entityType, type), eq(t.entityMedia.entityId, id)))
+    .orderBy(asc(t.entityMedia.sortOrder));
+  for (const r of rows) {
+    if (!isMediaPublic(r.m)) continue;
+    await publishMedia(tx, storage, org.id, r.m);
+    await tx.insert(a.entityMedia).values({ entityId: id, mediaId: r.m.id, sortOrder: r.sortOrder, caption: r.caption });
+  }
+}
+
+/** Media no longer used by any public item of the org leaves Atlas; files are deleted after commit. */
+async function cleanupMedia(tx: Tx, org: OrgRow, out: SyncResult) {
+  const used = new Set<string>();
+  const live = await tx.select({ id: a.entities.id, type: a.entities.entityType }).from(a.entities).where(eq(a.entities.orgId, org.id));
+  const liveIds = live.map((r) => r.id);
+  if (liveIds.length) {
+    for (const type of Object.keys(TABLES) as PublicEntityType[]) {
+      const x = tbl(type);
+      const rows = (await tx.select().from(x).where(inArray(x.id, liveIds))) as AnyRow[];
+      for (const r of rows) {
+        const c = coverIdOf(type, r);
+        if (c) used.add(c);
+      }
+    }
+    const gal = await tx.select({ id: a.entityMedia.mediaId }).from(a.entityMedia).where(inArray(a.entityMedia.entityId, liveIds));
+    for (const g of gal) used.add(g.id);
+  }
+  const published = await tx
+    .select({ id: t.mediaAssets.id, key: t.mediaAssets.publicStorageKey, m: t.mediaAssets })
+    .from(t.mediaAssets)
+    .where(and(eq(t.mediaAssets.organizationId, org.id), sql`${t.mediaAssets.publicStorageKey} IS NOT NULL`));
+  for (const p of published) {
+    if (p.id === org.logoMediaId) continue;
+    if (used.has(p.id) && isMediaPublic(p.m)) continue;
+    await tx.delete(a.media).where(eq(a.media.id, p.id));
+    out.deletePublicKeys.add(p.key!);
+    await tx.update(t.mediaAssets).set({ publicStorageKey: null }).where(eq(t.mediaAssets.id, p.id));
+  }
+  // atlas.media rows of covers that never had a gallery row
+  const rows = await tx.select({ id: a.media.id }).from(a.media).where(eq(a.media.orgId, org.id));
+  for (const r of rows) if (!used.has(r.id)) await tx.delete(a.media).where(eq(a.media.id, r.id));
 }
 
 /** 08 §6. */
@@ -296,12 +376,13 @@ async function syncOrg(tx: Tx, storage: Storage | undefined, orgId: string, out:
     if (company) await tombstone(tx, `/companies/${org.slug}`);
     await tx.delete(a.entities).where(eq(a.entities.orgId, orgId));
     await tx.delete(a.companies).where(eq(a.companies.orgId, orgId));
-    if (org.logoMediaId) {
-      const [m] = await tx.select({ key: t.mediaAssets.publicStorageKey }).from(t.mediaAssets).where(eq(t.mediaAssets.id, org.logoMediaId));
-      if (m?.key) {
-        out.deletePublicKeys.add(m.key);
-        await tx.update(t.mediaAssets).set({ publicStorageKey: null }).where(eq(t.mediaAssets.id, org.logoMediaId));
-      }
+    const keys = await tx
+      .select({ id: t.mediaAssets.id, key: t.mediaAssets.publicStorageKey })
+      .from(t.mediaAssets)
+      .where(and(eq(t.mediaAssets.organizationId, orgId), sql`${t.mediaAssets.publicStorageKey} IS NOT NULL`));
+    for (const k of keys) {
+      out.deletePublicKeys.add(k.key!);
+      await tx.update(t.mediaAssets).set({ publicStorageKey: null }).where(eq(t.mediaAssets.id, k.id));
     }
     return;
   }

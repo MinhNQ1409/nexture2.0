@@ -189,3 +189,22 @@ export const valueOrder = z.object({ ids: z.array(z.uuid()).max(100) });
 export const RELATION_TARGETS = ['STORY', 'EVENT', 'PERSON', 'PRODUCT_PROJECT', 'CULTURE_VALUE'] as const;
 export type RelationTarget = (typeof RELATION_TARGETS)[number];
 export const relationsInput = z.object({ targetType: z.enum(RELATION_TARGETS), ids: z.array(z.uuid()).max(100) });
+
+// Media library (06 §10).
+export const mediaPatch = z
+  .object({
+    version: z.number().int(),
+    title: z.string().trim().min(1).max(200),
+    description: nullableText(2000),
+    altText: nullableText(300),
+    occurredDate: fuzzyDate.nullish(),
+    sourceNote: nullableText(500),
+    providedBy: nullableText(200),
+    tags: z.array(z.string().trim().min(1).max(50)).max(20),
+  })
+  .partial()
+  .required({ version: true });
+export const entityMediaInput = z.object({
+  items: z.array(z.object({ mediaId: z.uuid(), caption: nullableText(300) })).max(50),
+});
+export const MEDIA_KIND_LABELS = { IMAGE: 'Ảnh', DOCUMENT: 'Tài liệu', VIDEO: 'Video', AUDIO: 'Âm thanh' } as const;

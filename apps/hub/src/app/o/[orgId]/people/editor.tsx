@@ -2,6 +2,7 @@
 // Person create/detail (06 §7).
 import type { PersonDto } from '@nexture/core';
 import { formatFuzzyDate } from '@nexture/contracts';
+import { CoverField } from '@/components/media-picker';
 import { ContentEditor, Html, InternalNotesField, type ContentBase } from '@/components/content-editor';
 import { OptionalDate, thisYear, type FuzzyValue } from '@/components/fuzzy-date';
 import { Field, Input, Textarea } from '@/components/ui';
@@ -19,6 +20,7 @@ type Form = {
   bio: string;
   contributions: string;
   internalNotes: string;
+  cover: string | null;
 };
 
 const toForm = (p: Pe | null, founder = false): Form => ({
@@ -32,6 +34,7 @@ const toForm = (p: Pe | null, founder = false): Form => ({
   bio: htmlToText(p?.bioVi ?? null),
   contributions: htmlToText(p?.contributionsVi ?? null),
   internalNotes: p?.internalNotes ?? '',
+  cover: p?.cover?.id ?? null,
 });
 
 export function PersonEditor({ orgId, isAdmin, person, founder }: { orgId: string; isAdmin: boolean; person: Pe | null; founder?: boolean }) {
@@ -55,6 +58,7 @@ export function PersonEditor({ orgId, isAdmin, person, founder }: { orgId: strin
         bioVi: textToHtml(f.bio) || null,
         contributionsVi: textToHtml(f.contributions) || null,
         internalNotes: f.internalNotes || null,
+        avatarMediaId: f.cover,
       })}
       fields={(form, set, err) => (
         <>
@@ -80,6 +84,7 @@ export function PersonEditor({ orgId, isAdmin, person, founder }: { orgId: strin
           <Field label="Đóng góp nổi bật">
             <Textarea rows={4} value={form.contributions} onChange={(e) => set('contributions', e.target.value)} />
           </Field>
+          <CoverField orgId={orgId} label="Ảnh đại diện" value={form.cover} initial={person?.cover ?? null} round onChange={(id) => set('cover', id)} />
           <InternalNotesField value={form.internalNotes} onChange={(v) => set('internalNotes', v)} />
           <p className="text-caption text-ink-mute">Không nhập thông tin liên hệ cá nhân (số điện thoại, email, địa chỉ nhà).</p>
         </>

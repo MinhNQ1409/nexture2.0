@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, type ReactNode } from 'react';
+import { GalleryCard, type GalleryItem } from './gallery-card';
 import { RelationsCard } from './relations-card';
 import { ArrowLeft, ExternalLink, MessageSquareWarning } from 'lucide-react';
 import { VISIBILITY_LABELS, type ContentStatus, type Visibility } from '@nexture/contracts';
@@ -38,6 +39,8 @@ export type ContentBase = {
     canUnverify: boolean;
     allowedVisibilities: Visibility[];
   };
+  cover: { id: string; url: string; title: string } | null;
+  media: GalleryItem[];
   related: { stories: RelatedItem[]; events: RelatedItem[]; people: RelatedItem[]; products: RelatedItem[]; values: RelatedItem[] };
 };
 
@@ -187,6 +190,7 @@ export function ContentEditor<E extends ContentBase, F>(props: {
               onChange={(related) => setEv({ ...ev, related })}
             />
           )}
+          {ev && <GalleryCard orgId={orgId} collection={collection} entityId={ev.id} items={ev.media} canEdit={ev.permissions.canEdit} onChange={(media) => setEv({ ...ev, media })} />}
         </div>
 
         {ev && (

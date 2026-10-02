@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArrowLeft, Building2, CalendarDays } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { eventDate } from '@/lib/dates';
-import { entityHref, getCompany, getRelated, type EntityCard } from '@/lib/queries';
+import { entityHref, getCompany, getGallery, getRelated, type EntityCard } from '@/lib/queries';
 
 type Entity = {
   id: string;
@@ -19,6 +19,8 @@ type Entity = {
   datePrecision: string | null;
   endDate: string | null;
   endDatePrecision: string | null;
+  coverUrl: string | null;
+  coverAlt: string | null;
   sources: { title: string; url: string | null; note: string | null }[];
 };
 
@@ -32,7 +34,15 @@ const GROUPS: [string[], string][] = [
 export function RelatedCard({ e }: { e: EntityCard }) {
   const when = eventDate(e.sortDate, e.datePrecision);
   return (
-    <Link href={entityHref(e.entityType, e.slug)} className="flex flex-col gap-1 rounded-lg border border-hairline bg-canvas-white p-4 shadow-card transition-colors duration-[120ms] hover:bg-canvas-section">
+    <Link href={entityHref(e.entityType, e.slug)} className="flex flex-col gap-1 overflow-hidden rounded-lg border border-hairline bg-canvas-white p-4 shadow-card transition-colors duration-[120ms] hover:bg-canvas-section">
+      {e.coverUrl &&
+        (e.entityType === 'PERSON' ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={e.coverUrl} alt="" className="mb-2 size-16 rounded-full object-cover" />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={e.coverUrl} alt="" className="-mx-4 -mt-4 mb-2 aspect-[16/9] w-[calc(100%+2rem)] max-w-none object-cover" />
+        ))}
       <span className="text-caption text-ink-mute">{[e.subtitle, e.entityType !== 'PERSON' && when].filter(Boolean).join(' · ')}</span>
       <span className="font-display text-heading-sm text-ink">{e.title}</span>
       {e.summary && <span className="line-clamp-2 text-body-md text-ink-mute">{e.summary}</span>}
@@ -41,7 +51,7 @@ export function RelatedCard({ e }: { e: EntityCard }) {
 }
 
 export async function EntityView({ e, label, meta, children }: { e: Entity; label?: string | null; meta?: ReactNode; children?: ReactNode }) {
-  const [related, company] = await Promise.all([getRelated(e.id, e.companySlug), getCompany(e.companySlug)]);
+  const [related, company, gallery] = await Promise.all([getRelated(e.id, e.companySlug), getCompany(e.companySlug), getGallery(e.id, e.companySlug)]);
   const values = (e.extra.values as string[] | undefined) ?? [];
   const when = eventDate(e.sortDate, e.datePrecision, e.endDate, e.endDatePrecision);
 
@@ -51,7 +61,15 @@ export async function EntityView({ e, label, meta, children }: { e: Entity; labe
         <ArrowLeft size={16} strokeWidth={1.5} aria-hidden />
         {e.companyName}
       </Link>
+      {e.coverUrl && e.entityType !== 'PERSON' && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={e.coverUrl} alt={e.coverAlt ?? ''} className="aspect-[16/9] w-full rounded-lg object-cover" />
+      )}
       <header className="flex flex-col gap-3">
+        {e.coverUrl && e.entityType === 'PERSON' && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={e.coverUrl} alt={e.coverAlt ?? e.title} className="size-32 rounded-full object-cover" />
+        )}
         {label && <p className="text-body-md font-medium text-primary">{label}</p>}
         <h1 className="text-display-md md:text-display-lg">{e.title}</h1>
         <ul className="flex flex-wrap gap-x-5 gap-y-2 text-body-md text-ink-mute">
@@ -74,6 +92,26 @@ export async function EntityView({ e, label, meta, children }: { e: Entity; labe
       {/* body_html is sanitized with an allowlist when saved in Hub (core/content/html.ts). */}
       {e.bodyHtml && <div className="rich-text text-body-lg" dangerouslySetInnerHTML={{ __html: e.bodyHtml }} />}
       {children}
+      {gallery.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-heading-md">Hình ảnh</h2>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {gallery.map((m) => (
+              <li key={m.id}>
+                <figure className="flex flex-col gap-1">
+                  {m.kind === 'VIDEO' ? (
+                    <video src={m.url} controls preload="metadata" className="aspect-[4/3] w-full rounded-md bg-canvas-section object-cover" />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={m.url} alt={m.alt ?? m.caption ?? m.title} loading="lazy" className="aspect-[4/3] w-full rounded-md object-cover" />
+                  )}
+                  {m.caption && <figcaption className="text-caption text-ink-mute">{m.caption}</figcaption>}
+                </figure>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {values.length > 0 && (
         <section className="flex flex-col gap-2">
           <h2 className="text-heading-sm">Giá trị thể hiện</h2>

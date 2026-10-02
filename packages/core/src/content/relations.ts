@@ -7,6 +7,7 @@ import { logActivity } from '../activity';
 import { entityPermissions } from '../authz';
 import { requireMember, type Ctx } from '../context';
 import { fail } from '../errors';
+import { replaceEntityMedia } from '../media';
 import { parse } from '../validate';
 import { afterContentChange, loadContent, tableOf, type ContentType } from './engine';
 import { KINDS } from './registry';
@@ -89,6 +90,21 @@ export async function setRelations(ctx: Ctx, collection: string, orgId: string, 
         changes: { [targetType]: [existing.length, wanted.length] },
       });
     }
+    return { row: self, role };
+  });
+}
+
+/** PUT .../media: replace the gallery (order = array order). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function setEntityMedia(ctx: Ctx, collection: string, orgId: string, id: string, raw: unknown): Promise<any> {
+  const kind = KINDS[collection];
+  if (!kind) return fail('NOT_FOUND');
+  const role = await requireMember(ctx.db, ctx.actor, orgId);
+  return afterContentChange(ctx, orgId, kind, id, async (tx) => {
+    const self = await loadContent<typeof t.events.$inferSelect>(tx, kind, role, orgId, id, true);
+    if (!entityPermissions(role, ctx.actor.userId, self).canEdit) fail('FORBIDDEN');
+    await replaceEntityMedia(tx, orgId, kind.type, id, raw);
+    await logActivity(tx, { organizationId: orgId, actorId: ctx.actor.userId, action: 'ENTITY_MEDIA_UPDATED', targetType: kind.type, targetId: id, targetLabel: kind.title(self) });
     return { row: self, role };
   });
 }

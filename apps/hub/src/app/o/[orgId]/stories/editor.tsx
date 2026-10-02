@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { STORY_TYPE_LABELS, STORY_TYPES, type StoryType } from '@nexture/contracts';
 import type { StoryDto } from '@nexture/core';
+import { CoverField } from '@/components/media-picker';
 import { ContentEditor, Html, InternalNotesField, type ContentBase } from '@/components/content-editor';
 import { OptionalDate, thisYear, type FuzzyValue } from '@/components/fuzzy-date';
 import { Card, Field, Input, Select, Textarea } from '@/components/ui';
@@ -11,7 +12,7 @@ import { api } from '@/lib/fetcher';
 import { htmlToText, textToHtml } from '@/lib/plain-html';
 
 type St = StoryDto & ContentBase;
-type Form = { storyType: StoryType; titleVi: string; hasDate: boolean; storyDate: FuzzyValue; summaryVi: string; content: string; internalNotes: string };
+type Form = { storyType: StoryType; titleVi: string; hasDate: boolean; storyDate: FuzzyValue; summaryVi: string; content: string; internalNotes: string; cover: string | null };
 
 const toForm = (s: St | null, defaultType: StoryType = 'CULTURE'): Form => ({
   storyType: s?.storyType ?? defaultType,
@@ -21,6 +22,7 @@ const toForm = (s: St | null, defaultType: StoryType = 'CULTURE'): Form => ({
   summaryVi: s?.summaryVi ?? '',
   content: htmlToText(s?.contentVi ?? null),
   internalNotes: s?.internalNotes ?? '',
+  cover: s?.cover?.id ?? null,
 });
 
 /** 06 §7 item 7: admin picks the COMPANY story shown first on the Atlas profile. */
@@ -73,6 +75,7 @@ export function StoryEditor({ orgId, isAdmin, story, featured, defaultType }: { 
         summaryVi: f.summaryVi || null,
         contentVi: textToHtml(f.content) || null,
         internalNotes: f.internalNotes || null,
+        coverMediaId: f.cover,
       })}
       fields={(form, set, err) => (
         <>
@@ -99,6 +102,7 @@ export function StoryEditor({ orgId, isAdmin, story, featured, defaultType }: { 
           <div className="grid gap-4 sm:grid-cols-2">
             <OptionalDate label="Gắn với thời điểm" on={form.hasDate} value={form.storyDate} onToggle={(v) => set('hasDate', v)} onChange={(v) => set('storyDate', v)} />
           </div>
+          <CoverField orgId={orgId} label="Ảnh bìa" value={form.cover} initial={story?.cover ?? null} onChange={(id) => set('cover', id)} />
           <InternalNotesField value={form.internalNotes} onChange={(v) => set('internalNotes', v)} />
         </>
       )}

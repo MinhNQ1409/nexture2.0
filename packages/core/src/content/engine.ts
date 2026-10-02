@@ -10,7 +10,7 @@ import { diff, logActivity } from '../activity';
 import { canOrg, entityPermissions } from '../authz';
 import { requireMember, type Ctx, type DbOrTx } from '../context';
 import { fail } from '../errors';
-import { mediaRefById } from '../media';
+import { entityMediaList, mediaRefById } from '../media';
 import { flushRevalidate } from '../public/flush';
 import { publicState } from '../public/rules';
 import { atlasPath, atlasTypeOf, emptySync, syncPublic, type PublicEntityType } from '../public/sync';
@@ -152,7 +152,7 @@ export async function contentDto<R extends BaseRow, F extends Record<string, unk
     submittedAt: e.submittedAt,
     permissions: entityPermissions(role, ctx.actor.userId, e),
     related: await relatedOf(ctx.db, role, e.organizationId, def.type, e.id),
-    media: [] as unknown[],
+    media: await entityMediaList(ctx, e.organizationId, def.type, e.id, role),
     sources: [] as unknown[],
   };
 }
@@ -338,6 +338,11 @@ export async function listContent(ctx: Ctx, def: KindDef, orgId: string, query: 
     .limit(pageSize)
     .offset((page - 1) * pageSize)) as BaseRow[];
   const org = await orgPublic(ctx.db, orgId);
+  const thumbs = new Map<string, string>();
+  for (const cid of new Set(rows.map((e) => def.coverId(e)).filter((x): x is string => Boolean(x)))) {
+    const ref = await mediaRefById(ctx, orgId, cid);
+    if (ref) thumbs.set(cid, ref.url);
+  }
   return {
     page,
     pageSize,
@@ -347,7 +352,7 @@ export async function listContent(ctx: Ctx, def: KindDef, orgId: string, query: 
       type: def.type,
       title: def.title(e),
       ...def.listItem(e),
-      thumbnailUrl: null as string | null,
+      thumbnailUrl: thumbs.get(def.coverId(e) ?? '') ?? null,
       status: e.status,
       visibility: e.visibility,
       publicState: publicState(e, org),

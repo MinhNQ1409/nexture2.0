@@ -31,6 +31,7 @@ export type ListItem = {
   visibility: Visibility;
   publicState: PublicStateValue;
   updatedAt: Date;
+  thumbnailUrl?: string | null;
 };
 
 export function ContentList(props: {
@@ -157,15 +158,25 @@ export function ContentList(props: {
                   className={`${tableRow} border-l-4 ${e.status === "DRAFT" ? "border-l-hairline" : "border-l-primary"}`}
                 >
                   <td>
-                    <Link
-                      href={`${base}/${e.id}`}
-                      className="font-semibold hover:text-primary"
-                    >
-                      {e.title}
-                    </Link>
-                    {e.subtitle && (
-                      <p className="text-caption text-ink-mute">{e.subtitle}</p>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {e.thumbnailUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={e.thumbnailUrl} alt="" className="size-10 shrink-0 rounded-md border border-hairline object-cover" />
+                      ) : (
+                        <span className="size-10 shrink-0 rounded-md bg-canvas-section" aria-hidden />
+                      )}
+                      <div className="min-w-0">
+                        <Link
+                          href={`${base}/${e.id}`}
+                          className="font-semibold hover:text-primary"
+                        >
+                          {e.title}
+                        </Link>
+                        {e.subtitle && (
+                          <p className="text-caption text-ink-mute">{e.subtitle}</p>
+                        )}
+                      </div>
+                    </div>
                   </td>
                   <td className="tabular whitespace-nowrap">
                     {formatFuzzyDate(e.date)}

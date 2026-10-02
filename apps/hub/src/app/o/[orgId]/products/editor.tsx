@@ -2,13 +2,14 @@
 // Product / project create/detail (06 §7).
 import { PP_KIND_LABELS, PP_KINDS, PP_STATUS_LABELS, PP_STATUSES, formatFuzzyDate, type PpKind, type PpStatus } from '@nexture/contracts';
 import type { ProductDto } from '@nexture/core';
+import { CoverField } from '@/components/media-picker';
 import { ContentEditor, Html, InternalNotesField, type ContentBase } from '@/components/content-editor';
 import { OptionalDate, thisYear, type FuzzyValue } from '@/components/fuzzy-date';
 import { Field, Input, Select, Textarea } from '@/components/ui';
 import { htmlToText, textToHtml } from '@/lib/plain-html';
 
 type Pr = ProductDto & ContentBase;
-type Form = { kind: PpKind; titleVi: string; summaryVi: string; hasLaunch: boolean; launchDate: FuzzyValue; ppStatus: PpStatus; description: string; internalNotes: string };
+type Form = { kind: PpKind; titleVi: string; summaryVi: string; hasLaunch: boolean; launchDate: FuzzyValue; ppStatus: PpStatus; description: string; internalNotes: string; cover: string | null };
 
 const toForm = (p: Pr | null, kind: PpKind = 'PRODUCT'): Form => ({
   kind: p?.kind ?? kind,
@@ -19,6 +20,7 @@ const toForm = (p: Pr | null, kind: PpKind = 'PRODUCT'): Form => ({
   ppStatus: p?.ppStatus ?? 'ACTIVE',
   description: htmlToText(p?.descriptionVi ?? null),
   internalNotes: p?.internalNotes ?? '',
+  cover: p?.cover?.id ?? null,
 });
 
 export function ProductEditor({ orgId, isAdmin, product, kind }: { orgId: string; isAdmin: boolean; product: Pr | null; kind?: PpKind }) {
@@ -41,6 +43,7 @@ export function ProductEditor({ orgId, isAdmin, product, kind }: { orgId: string
         ppStatus: f.ppStatus,
         descriptionVi: textToHtml(f.description) || null,
         internalNotes: f.internalNotes || null,
+        coverMediaId: f.cover,
       })}
       fields={(form, set, err) => (
         <>
@@ -82,6 +85,7 @@ export function ProductEditor({ orgId, isAdmin, product, kind }: { orgId: string
           <Field label="Mô tả" hint="Xuống dòng hai lần để tách đoạn.">
             <Textarea rows={8} value={form.description} onChange={(e) => set('description', e.target.value)} />
           </Field>
+          <CoverField orgId={orgId} label="Ảnh bìa" value={form.cover} initial={product?.cover ?? null} onChange={(id) => set('cover', id)} />
           <InternalNotesField value={form.internalNotes} onChange={(v) => set('internalNotes', v)} />
         </>
       )}

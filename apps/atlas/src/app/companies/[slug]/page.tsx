@@ -86,6 +86,10 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
 
       {featured && (
         <section id="cau-chuyen" className="flex scroll-mt-16 flex-col gap-3 rounded-xl border-l-4 border-primary bg-canvas-white p-6 shadow-card md:p-8">
+          {featured.coverUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={featured.coverUrl} alt={featured.coverAlt ?? ''} className="aspect-[21/9] w-full rounded-lg object-cover" />
+          )}
           <p className="text-body-md font-medium text-primary">Câu chuyện doanh nghiệp</p>
           <h2 className="text-heading-lg">{featured.title}</h2>
           {featured.summary && <p className="max-w-reading text-body-lg text-ink-mute">{featured.summary}</p>}
@@ -132,9 +136,14 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
             {people.map((p) => (
               <li key={p.id}>
                 <Link href={`/people/${p.slug}`} className="flex h-full items-center gap-4 rounded-lg border border-hairline bg-canvas-white p-5 shadow-card hover:bg-canvas-section">
-                  <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-primary-light text-primary">
-                    <UserRound size={24} strokeWidth={1.5} aria-hidden />
-                  </span>
+                  {p.coverUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.coverUrl} alt="" className="size-12 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-primary-light text-primary">
+                      <UserRound size={24} strokeWidth={1.5} aria-hidden />
+                    </span>
+                  )}
                   <span className="min-w-0">
                     <span className="block font-display text-heading-sm text-ink">{p.title}</span>
                     <span className="block text-body-md text-ink-mute">{[p.extra.isFounder === true && 'Người sáng lập', p.subtitle].filter(Boolean).join(' · ')}</span>

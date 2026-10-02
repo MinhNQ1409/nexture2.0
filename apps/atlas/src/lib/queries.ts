@@ -41,8 +41,10 @@ const card = {
   datePrecision: a.entities.datePrecision,
   endDate: a.entities.endDate,
   endDatePrecision: a.entities.endDatePrecision,
+  coverUrl: a.entities.coverUrl,
+  coverAlt: a.entities.coverAlt,
 };
-export type EntityCard = { id: string; entityType: string; slug: string; title: string; subtitle: string | null; summary: string | null; extra: Record<string, unknown>; sortDate: string | null; datePrecision: string | null; endDate: string | null; endDatePrecision: string | null };
+export type EntityCard = { id: string; entityType: string; slug: string; title: string; subtitle: string | null; summary: string | null; extra: Record<string, unknown>; sortDate: string | null; datePrecision: string | null; endDate: string | null; endDatePrecision: string | null; coverUrl: string | null; coverAlt: string | null };
 
 /** Every public item of one company, oldest first; the company page splits it by type. */
 export const getCompanyEntities = (orgId: string, companySlug: string) =>
@@ -63,5 +65,31 @@ export const getRelated = (id: string, companySlug: string) =>
         .where(eq(a.relations.fromId, id))
         .orderBy(asc(a.entities.sortDate), asc(a.entities.title))) as EntityCard[],
     ['related', id],
+    { tags: [`company:${companySlug}`], revalidate: 300 },
+  )();
+
+export type GalleryItem = { id: string; kind: 'IMAGE' | 'VIDEO'; url: string; mimeType: string; width: number | null; height: number | null; alt: string | null; title: string; caption: string | null };
+
+/** Public gallery of one entity, in Hub order. Media sync re-projects the whole company, so the company tag covers it. */
+export const getGallery = (id: string, companySlug: string) =>
+  unstable_cache(
+    async () =>
+      (await db()
+        .select({
+          id: a.media.id,
+          kind: a.media.kind,
+          url: a.media.url,
+          mimeType: a.media.mimeType,
+          width: a.media.width,
+          height: a.media.height,
+          alt: a.media.alt,
+          title: a.media.title,
+          caption: a.entityMedia.caption,
+        })
+        .from(a.entityMedia)
+        .innerJoin(a.media, eq(a.media.id, a.entityMedia.mediaId))
+        .where(eq(a.entityMedia.entityId, id))
+        .orderBy(asc(a.entityMedia.sortOrder))) as GalleryItem[],
+    ['gallery', id],
     { tags: [`company:${companySlug}`], revalidate: 300 },
   )();
