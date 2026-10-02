@@ -1,9 +1,9 @@
 import { Flag } from "lucide-react";
 import { EVENT_TYPE_LABELS, EVENT_TYPES } from "@nexture/contracts";
-import { canOrg, getOrg, listEvents } from "@nexture/core";
+import { canOrg, listEvents } from "@nexture/core";
 import { ContentList } from "@/components/content-list";
 import { Select } from "@/components/ui";
-import { requirePageCtx } from "@/lib/session";
+import { orgOf, requirePageCtx } from "@/lib/session";
 
 export default async function EventsPage({
   params,
@@ -15,7 +15,7 @@ export default async function EventsPage({
   const { orgId } = await params;
   const sp = await searchParams;
   const ctx = await requirePageCtx();
-  const org = await getOrg(ctx, orgId);
+  const org = await orgOf(ctx, orgId);
   return (
     <ContentList
       orgId={orgId}

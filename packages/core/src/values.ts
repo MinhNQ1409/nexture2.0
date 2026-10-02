@@ -34,6 +34,8 @@ const dto = (v: ValueRow, c = { stories: 0, events: 0 }) => ({
   id: v.id,
   nameVi: v.nameVi,
   descriptionVi: v.descriptionVi,
+  nameEn: v.nameEn,
+  descriptionEn: v.descriptionEn,
   visibility: v.visibility,
   sortOrder: v.sortOrder,
   version: v.version,

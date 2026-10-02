@@ -147,7 +147,7 @@ export function TimelineView({ orgId, canSeeUnverified, canCreate, initial, peop
                     <button type="button" onClick={() => setOpen(e.id)} className="flex w-full gap-3 rounded-lg border border-hairline bg-canvas-white p-4 text-left shadow-card transition-colors hover:border-primary">
                       {e.thumbnailUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={e.thumbnailUrl} alt="" className="size-16 shrink-0 rounded-md object-cover" />
+                        <img loading="lazy" decoding="async" src={e.thumbnailUrl} alt="" className="size-16 shrink-0 rounded-md object-cover" />
                       )}
                       <span className="flex min-w-0 flex-1 flex-col gap-1">
                         <span className="text-caption text-ink-mute">
@@ -180,7 +180,7 @@ function Avatars({ people }: { people: TimelineItem['people'] }) {
       {people.slice(0, 3).map((p) =>
         p.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img key={p.id} src={p.avatarUrl} alt={p.name} className="-ml-1 size-6 rounded-full border-2 border-canvas-white object-cover first:ml-0" />
+          <img loading="lazy" decoding="async" key={p.id} src={p.avatarUrl} alt={p.name} className="-ml-1 size-6 rounded-full border-2 border-canvas-white object-cover first:ml-0" />
         ) : (
           <span key={p.id} className="-ml-1 flex size-6 items-center justify-center rounded-full border-2 border-canvas-white bg-primary-light text-[11px] font-semibold text-primary first:ml-0" aria-label={p.name}>
             {p.name.trim().split(/\s+/).at(-1)?.[0]}
@@ -234,7 +234,7 @@ function Drawer({ orgId, id, onClose }: { orgId: string; id: string; onClose: ()
           <>
             {e.cover && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={e.cover.url} alt={e.cover.title} className="aspect-[16/9] w-full rounded-md object-cover" />
+              <img loading="lazy" decoding="async" src={e.cover.url} alt={e.cover.title} className="aspect-[16/9] w-full rounded-md object-cover" />
             )}
             {e.summaryVi && <p className="text-body-lg">{e.summaryVi}</p>}
             <Html html={e.contentVi} />
@@ -274,7 +274,7 @@ function Drawer({ orgId, id, onClose }: { orgId: string; id: string; onClose: ()
                     <li key={m.id}>
                       {m.kind === 'IMAGE' ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={m.url} alt={m.caption ?? m.title} className="aspect-[4/3] w-full rounded-md object-cover" />
+                        <img loading="lazy" decoding="async" src={m.url} alt={m.caption ?? m.title} className="aspect-[4/3] w-full rounded-md object-cover" />
                       ) : (
                         <video src={m.url} controls preload="metadata" className="aspect-[4/3] w-full rounded-md" />
                       )}

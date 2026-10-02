@@ -6,10 +6,12 @@ import { CoverField } from '@/components/media-picker';
 import { ContentEditor, Html, InternalNotesField, type ContentBase } from '@/components/content-editor';
 import { FuzzyDateInput, OptionalDate, thisYear, type FuzzyValue } from '@/components/fuzzy-date';
 import { Field, Input, Select, Textarea } from '@/components/ui';
+import { EnglishFields, enForm, enPayload, type EnForm, type EnSpec } from '@/components/english-fields';
 import { RichText } from '@/components/rich-text';
 
 type Ev = EventDto & ContentBase;
-type Form = { eventType: EventType; titleVi: string; startDate: FuzzyValue; hasEnd: boolean; endDate: FuzzyValue; summaryVi: string; content: string; internalNotes: string; cover: string | null };
+const EN: EnSpec[] = [{ key: 'titleEn', label: 'Title', kind: 'input', max: 200 }, { key: 'summaryEn', label: 'Summary', kind: 'textarea', max: 500 }, { key: 'contentEn', label: 'Content', kind: 'rich' }];
+type Form = { eventType: EventType; titleVi: string; startDate: FuzzyValue; hasEnd: boolean; endDate: FuzzyValue; summaryVi: string; content: string; internalNotes: string; en: EnForm; cover: string | null };
 
 const toForm = (e: Ev | null): Form => ({
   eventType: e?.eventType ?? 'MILESTONE',
@@ -20,6 +22,7 @@ const toForm = (e: Ev | null): Form => ({
   summaryVi: e?.summaryVi ?? '',
   content: e?.contentVi ?? '',
   internalNotes: e?.internalNotes ?? '',
+  en: enForm(e as Record<string, unknown> | null, EN),
   cover: e?.cover?.id ?? null,
 });
 
@@ -36,6 +39,7 @@ export function EventEditor({ orgId, isAdmin, event }: { orgId: string; isAdmin:
       toForm={toForm}
       canSave={(f) => Boolean(f.titleVi.trim())}
       payload={(f) => ({
+        ...enPayload(f.en),
         eventType: f.eventType,
         titleVi: f.titleVi,
         startDate: f.startDate,
@@ -72,6 +76,7 @@ export function EventEditor({ orgId, isAdmin, event }: { orgId: string; isAdmin:
           </Field>
           <RichText label="Nội dung" value={form.content} onChange={(v) => set('content', v)} />
           <CoverField orgId={orgId} label="Ảnh bìa" value={form.cover} initial={event?.cover ?? null} onChange={(id) => set('cover', id)} />
+          <EnglishFields spec={EN} value={form.en} onChange={(v) => set('en', v)} />
           <InternalNotesField value={form.internalNotes} onChange={(v) => set('internalNotes', v)} />
         </>
       )}

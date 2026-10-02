@@ -36,7 +36,26 @@ export const STORY_TYPE_LABELS: Record<StoryType, string> = {
   PRODUCT: 'Câu chuyện sản phẩm',
 };
 export const PP_KIND_LABELS: Record<PpKind, string> = { PRODUCT: 'Sản phẩm', PROJECT: 'Dự án' };
+export const EVENT_TYPE_LABELS_EN: Record<EventType, string> = {
+  FOUNDING: 'Founding',
+  MILESTONE: 'Milestone',
+  PRODUCT_LAUNCH: 'Product launch',
+  ACHIEVEMENT: 'Achievement',
+  EXPANSION: 'Expansion',
+  CULTURE_ACTIVITY: 'Culture activity',
+  PARTNERSHIP: 'Partnership',
+  OTHER: 'Other',
+};
+export const STORY_TYPE_LABELS_EN: Record<StoryType, string> = {
+  COMPANY: 'Company story',
+  FOUNDER: 'Founder story',
+  CULTURE: 'Culture story',
+  PEOPLE: 'People story',
+  PRODUCT: 'Product story',
+};
+export const PP_KIND_LABELS_EN: Record<PpKind, string> = { PRODUCT: 'Product', PROJECT: 'Project' };
 export const PP_STATUS_LABELS: Record<PpStatus, string> = { PLANNED: 'Dự kiến', ACTIVE: 'Đang hoạt động', COMPLETED: 'Đã hoàn thành', DISCONTINUED: 'Đã ngừng' };
+export const PP_STATUS_LABELS_EN: Record<PpStatus, string> = { PLANNED: 'Planned', ACTIVE: 'Active', COMPLETED: 'Completed', DISCONTINUED: 'Discontinued' };
 export const PUBLIC_STATE_LABELS = {
   NOT_PUBLIC: '',
   LIVE: 'Đang hiển thị trên Atlas',
@@ -180,6 +199,8 @@ export const completeUploadInput = z.object({
 export const valueInput = z.object({
   nameVi: z.string().trim().min(1).max(100),
   descriptionVi: nullableText(1000),
+  nameEn: nullableText(100),
+  descriptionEn: nullableText(1000),
   visibility: z.enum(['INTERNAL', 'PUBLIC']).default('INTERNAL'),
 });
 export type ValueInput = z.input<typeof valueInput>;

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { ArrowRight, Circle, CircleCheck, ClipboardCheck, ImagePlus } from "lucide-react";
 import { ACTIVITY_LABELS, ROLE_LABELS, TARGET_TYPE_LABELS } from "@nexture/contracts";
-import { canOrg, getOrg, listActivity, reviewQueue } from "@nexture/core";
+import { canOrg, listActivity, reviewQueue } from "@nexture/core";
 import { activityHref, relativeTime } from "@/lib/activity";
 import { Alert, Badge, Card } from "@/components/ui";
 import { DemoButton } from "@/components/demo-button";
-import { requirePageCtx } from "@/lib/session";
+import { orgOf, requirePageCtx } from "@/lib/session";
 
 const CHECKLIST = [
   ["hasFounder", "Người sáng lập và câu chuyện hình thành", "people?founder=1"],
@@ -24,7 +24,7 @@ export default async function Dashboard({
 }) {
   const { orgId } = await params;
   const ctx = await requirePageCtx();
-  const org = await getOrg(ctx, orgId);
+  const org = await orgOf(ctx, orgId);
   const sp = await searchParams;
   const created = sp.created === "1";
   const demo = sp.demo === "1";
@@ -116,8 +116,9 @@ export default async function Dashboard({
             Tạo một doanh nghiệp demo có sẵn sự kiện, thành viên và hồ sơ trên
             Culture Atlas để trải nghiệm mọi tính năng.
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap gap-2">
             <DemoButton />
+            <DemoButton set="corps" />
           </div>
         </Card>
 

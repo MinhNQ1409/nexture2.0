@@ -31,8 +31,11 @@ export class S3Storage implements Storage {
     await this.client.send(new PutObjectCommand({ Bucket: this.cfg.privateBucket, Key: key, Body: body, ContentType: mimeType }));
   }
 
+  /** Signed in 30-minute windows so the URL stays identical between page loads and the browser can cache the image. */
   presignGet(key: string) {
-    return getSignedUrl(this.client, new GetObjectCommand({ Bucket: this.cfg.privateBucket, Key: key }), { expiresIn: 3600 });
+    const window = 30 * 60 * 1000;
+    const signingDate = new Date(Math.floor(Date.now() / window) * window);
+    return getSignedUrl(this.client, new GetObjectCommand({ Bucket: this.cfg.privateBucket, Key: key, ResponseCacheControl: 'private, max-age=1800' }), { expiresIn: 3600, signingDate });
   }
 
   async head(key: string) {

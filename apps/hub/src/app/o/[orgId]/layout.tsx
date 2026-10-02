@@ -1,16 +1,16 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Lock } from 'lucide-react';
-import { AppError, getMe, getOrg } from '@nexture/core';
+import { AppError, getMe } from '@nexture/core';
 import { Sidebar } from '@/components/sidebar';
 import { Topbar } from '@/components/topbar';
-import { requirePageCtx } from '@/lib/session';
+import { orgOf, requirePageCtx } from '@/lib/session';
 
 export default async function OrgLayout({ children, params }: { children: React.ReactNode; params: Promise<{ orgId: string }> }) {
   const { orgId } = await params;
   const ctx = await requirePageCtx(`/o/${orgId}/dashboard`);
   const me = await getMe(ctx);
-  const org = await getOrg(ctx, orgId).catch((e) => (e instanceof AppError && e.code === 'ORG_LOCKED' ? (e.details?.reason as string | null) ?? '' : notFound()));
+  const org = await orgOf(ctx, orgId).catch((e) => (e instanceof AppError && e.code === 'ORG_LOCKED' ? (e.details?.reason as string | null) ?? '' : notFound()));
   if (typeof org === 'string') return <Locked reason={org} others={me.organizations.filter((o) => o.id !== orgId && !o.lockedAt)} isNexture={ctx.actor.platformRole === 'NEXTURE_ADMIN'} />;
   return (
     <div className="flex min-h-screen">

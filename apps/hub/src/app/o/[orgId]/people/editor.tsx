@@ -6,9 +6,11 @@ import { CoverField } from '@/components/media-picker';
 import { ContentEditor, Html, InternalNotesField, type ContentBase } from '@/components/content-editor';
 import { OptionalDate, thisYear, type FuzzyValue } from '@/components/fuzzy-date';
 import { Field, Input } from '@/components/ui';
+import { EnglishFields, enForm, enPayload, type EnForm, type EnSpec } from '@/components/english-fields';
 import { RichText } from '@/components/rich-text';
 
 type Pe = PersonDto & ContentBase;
+const EN: EnSpec[] = [{ key: 'roleTitleEn', label: 'Role', kind: 'input', max: 150 }, { key: 'bioEn', label: 'Biography', kind: 'rich' }, { key: 'contributionsEn', label: 'Contributions', kind: 'rich' }];
 type Form = {
   fullName: string;
   roleTitleVi: string;
@@ -19,7 +21,7 @@ type Form = {
   leftDate: FuzzyValue;
   bio: string;
   contributions: string;
-  internalNotes: string;
+  internalNotes: string; en: EnForm;
   cover: string | null;
 };
 
@@ -34,6 +36,7 @@ const toForm = (p: Pe | null, founder = false): Form => ({
   bio: p?.bioVi ?? '',
   contributions: p?.contributionsVi ?? '',
   internalNotes: p?.internalNotes ?? '',
+  en: enForm(p as Record<string, unknown> | null, EN),
   cover: p?.cover?.id ?? null,
 });
 
@@ -50,6 +53,7 @@ export function PersonEditor({ orgId, isAdmin, person, founder }: { orgId: strin
       toForm={(p) => toForm(p, founder)}
       canSave={(f) => Boolean(f.fullName.trim())}
       payload={(f) => ({
+        ...enPayload(f.en),
         fullName: f.fullName,
         roleTitleVi: f.roleTitleVi || null,
         isFounder: f.isFounder,
@@ -81,6 +85,7 @@ export function PersonEditor({ orgId, isAdmin, person, founder }: { orgId: strin
           <RichText label="Tiểu sử" value={form.bio} onChange={(v) => set('bio', v)} />
           <RichText label="Đóng góp nổi bật" minRows={3} value={form.contributions} onChange={(v) => set('contributions', v)} />
           <CoverField orgId={orgId} label="Ảnh đại diện" value={form.cover} initial={person?.cover ?? null} round onChange={(id) => set('cover', id)} />
+          <EnglishFields spec={EN} value={form.en} onChange={(v) => set('en', v)} />
           <InternalNotesField value={form.internalNotes} onChange={(v) => set('internalNotes', v)} />
           <p className="text-caption text-ink-mute">Không nhập thông tin liên hệ cá nhân (số điện thoại, email, địa chỉ nhà).</p>
         </>

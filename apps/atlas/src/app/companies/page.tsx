@@ -3,9 +3,14 @@ import Link from 'next/link';
 import { ChevronDown, Search } from 'lucide-react';
 import { COMPANY_PAGE, findCompanies, getFacets, type CompanyQuery } from '@/lib/queries';
 import { CompanyCard } from '../company-card';
+import { getT, type Dict } from '@/lib/i18n';
+import Form from 'next/form';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Khám phá doanh nghiệp · Culture Atlas', description: 'Danh sách doanh nghiệp Việt Nam và văn hóa của họ.' };
+export async function generateMetadata() {
+  const { t } = await getT();
+  return { title: `${t.exploreTitle} · Culture Atlas`, description: t.exploreMetaDesc };
+}
 
 type SP = Record<string, string | string[] | undefined>;
 const list = (v: string | string[] | undefined) => ([] as string[]).concat(v ?? []).filter(Boolean);
@@ -14,13 +19,13 @@ const year = (v: string | string[] | undefined) => {
   return n >= 1800 && n <= 2100 ? n : undefined;
 };
 const SORTS = [
-  ['new', 'Mới tham gia'],
-  ['name', 'Tên A–Z'],
-  ['founded', 'Năm thành lập'],
+  ['new', 'sortNew'],
+  ['name', 'sortName'],
+  ['founded', 'sortFounded'],
 ] as const;
 const control = 'min-h-11 rounded-md border border-hairline-strong bg-canvas-white px-3 text-body-md';
 
-function Multi({ name, label, options, selected }: { name: string; label: string; options: { code: string; name: string; n: number }[]; selected: string[] }) {
+function Multi({ name, label, options, selected, empty }: { name: string; label: string; options: { code: string; name: string; n: number }[]; selected: string[]; empty: string }) {
   return (
     <details className="group relative">
       <summary className={`${control} flex cursor-pointer list-none items-center gap-2`}>
@@ -29,7 +34,7 @@ function Multi({ name, label, options, selected }: { name: string; label: string
         <ChevronDown size={16} strokeWidth={1.5} aria-hidden className="transition-transform group-open:rotate-180" />
       </summary>
       <div className="absolute left-0 top-full z-[5] mt-1 flex max-h-72 w-64 flex-col overflow-y-auto rounded-md border border-hairline bg-canvas-white p-2 shadow-card">
-        {options.length === 0 && <span className="p-2 text-caption text-ink-mute">Chưa có dữ liệu</span>}
+        {options.length === 0 && <span className="p-2 text-caption text-ink-mute">{empty}</span>}
         {options.map((o) => (
           <label key={o.code} className="flex items-center gap-2 rounded-sm p-2 text-body-md hover:bg-canvas-section">
             <input type="checkbox" name={name} value={o.code} defaultChecked={selected.includes(o.code)} className="accent-primary" />
@@ -44,6 +49,7 @@ function Multi({ name, label, options, selected }: { name: string; label: string
 
 export default async function Companies({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
+  const { lang, t } = await getT();
   const sort = (SORTS.find(([k]) => k === list(sp.sort)[0])?.[0] ?? 'new') as CompanyQuery['sort'];
   const f: CompanyQuery = {
     industry: list(sp.industry),
@@ -54,7 +60,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
     sort,
     page: Math.max(1, Number(list(sp.page)[0]) || 1),
   };
-  const [{ total, items }, facets] = await Promise.all([findCompanies(f), getFacets()]);
+  const [{ total, items }, facets] = await Promise.all([findCompanies(f, lang), getFacets(lang)]);
   const filtered = Boolean(f.industry.length || f.province.length || f.from || f.to || f.q);
   const pages = Math.max(1, Math.ceil(total / COMPANY_PAGE));
   const pageHref = (p: number) => {
@@ -67,64 +73,64 @@ export default async function Companies({ searchParams }: { searchParams: Promis
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-display-md">Khám phá doanh nghiệp</h1>
-        <p className="text-body-lg text-ink-mute">Lọc theo ngành, tỉnh thành và năm thành lập.</p>
+        <h1 className="text-display-md">{t.exploreTitle}</h1>
+        <p className="text-body-lg text-ink-mute">{t.exploreDesc}</p>
       </div>
-      <form className="flex flex-wrap items-center gap-2" role="search">
+      <Form action="/companies" className="flex flex-wrap items-center gap-2" role="search">
         <label className={`${control} flex min-w-0 flex-1 basis-56 items-center gap-2`}>
           <Search size={16} strokeWidth={1.5} className="shrink-0 text-ink-mute" aria-hidden />
-          <input name="q" defaultValue={f.q} maxLength={100} placeholder="Tên doanh nghiệp" aria-label="Tìm theo tên" className="w-full bg-transparent outline-none" />
+          <input name="q" defaultValue={f.q} maxLength={100} placeholder={t.companyName} aria-label={t.searchByName} className="w-full bg-transparent outline-none" />
         </label>
-        <Multi name="industry" label="Ngành" options={facets.industries} selected={f.industry} />
-        <Multi name="province" label="Tỉnh/Thành" options={facets.provinces} selected={f.province} />
-        <input name="from" type="number" min={1800} max={2100} defaultValue={f.from} placeholder="Từ năm" aria-label="Thành lập từ năm" className={`${control} w-28`} />
-        <input name="to" type="number" min={1800} max={2100} defaultValue={f.to} placeholder="Đến năm" aria-label="Thành lập đến năm" className={`${control} w-28`} />
-        <select name="sort" defaultValue={sort} aria-label="Sắp xếp" className={control}>
+        <Multi name="industry" label={t.industry} options={facets.industries} selected={f.industry} empty={t.noData} />
+        <Multi name="province" label={t.province} options={facets.provinces} selected={f.province} empty={t.noData} />
+        <input name="from" type="number" min={1800} max={2100} defaultValue={f.from} placeholder={t.fromYear} aria-label={t.foundedFrom} className={`${control} w-28`} />
+        <input name="to" type="number" min={1800} max={2100} defaultValue={f.to} placeholder={t.toYear} aria-label={t.foundedTo} className={`${control} w-28`} />
+        <select name="sort" defaultValue={sort} aria-label={t.sort} className={control}>
           {SORTS.map(([k, l]) => (
             <option key={k} value={k}>
-              {l}
+              {t[l as keyof Dict] as string}
             </option>
           ))}
         </select>
         <button type="submit" className="min-h-11 rounded-md bg-primary px-5 font-semibold text-on-primary hover:bg-primary-dark">
-          Lọc
+          {t.filter}
         </button>
         {filtered && (
           <Link href="/companies" className="px-2 text-body-md text-link underline">
-            Xóa bộ lọc
+            {t.clearFilters}
           </Link>
         )}
-      </form>
-      <p className="tabular text-body-md text-ink-mute">{total.toLocaleString('vi-VN')} doanh nghiệp</p>
+      </Form>
+      <p className="tabular text-body-md text-ink-mute">{t.companiesN(total.toLocaleString(t.locale))}</p>
       {items.length === 0 ? (
         <div className="flex min-h-60 flex-col items-center justify-center gap-3 text-center">
-          <p className="text-body-lg text-ink-mute">Chưa có doanh nghiệp phù hợp.</p>
+          <p className="text-body-lg text-ink-mute">{t.noCompanies}</p>
           {filtered && (
             <Link href="/companies" className="text-body-md text-link underline">
-              Xóa bộ lọc
+              {t.clearFilters}
             </Link>
           )}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((c) => (
-            <CompanyCard key={c.slug} c={c} />
+            <CompanyCard key={c.slug} c={c} t={t} />
           ))}
         </div>
       )}
       {pages > 1 && (
-        <nav aria-label="Phân trang" className="flex items-center justify-center gap-4 text-body-md">
+        <nav aria-label={t.pagination} className="flex items-center justify-center gap-4 text-body-md">
           {f.page > 1 && (
             <Link href={pageHref(f.page - 1)} className="text-link underline">
-              Trang trước
+              {t.prev}
             </Link>
           )}
           <span className="text-ink-mute">
-            Trang {f.page}/{pages}
+            {t.pageOf(f.page, pages)}
           </span>
           {f.page < pages && (
             <Link href={pageHref(f.page + 1)} className="text-link underline">
-              Trang sau
+              {t.next}
             </Link>
           )}
         </nav>

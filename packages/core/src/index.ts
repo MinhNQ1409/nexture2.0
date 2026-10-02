@@ -25,6 +25,7 @@ export * from './members';
 export * from './invites';
 export * from './me';
 export * from './demo';
+export { createCorpDemos, type CorpDemo } from './demo-corps';
 export * from './views';
 export * from './public/preview';
 export * from './admin';

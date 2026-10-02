@@ -9,10 +9,12 @@ import { ContentEditor, Html, InternalNotesField, type ContentBase } from '@/com
 import { OptionalDate, thisYear, type FuzzyValue } from '@/components/fuzzy-date';
 import { Card, Field, Input, Select, Textarea } from '@/components/ui';
 import { api } from '@/lib/fetcher';
+import { EnglishFields, enForm, enPayload, type EnForm, type EnSpec } from '@/components/english-fields';
 import { RichText } from '@/components/rich-text';
 
 type St = StoryDto & ContentBase;
-type Form = { storyType: StoryType; titleVi: string; hasDate: boolean; storyDate: FuzzyValue; summaryVi: string; content: string; internalNotes: string; cover: string | null };
+const EN: EnSpec[] = [{ key: 'titleEn', label: 'Title', kind: 'input', max: 200 }, { key: 'summaryEn', label: 'Summary', kind: 'textarea', max: 500 }, { key: 'contentEn', label: 'Content', kind: 'rich' }];
+type Form = { storyType: StoryType; titleVi: string; hasDate: boolean; storyDate: FuzzyValue; summaryVi: string; content: string; internalNotes: string; en: EnForm; cover: string | null };
 
 const toForm = (s: St | null, defaultType: StoryType = 'CULTURE'): Form => ({
   storyType: s?.storyType ?? defaultType,
@@ -22,6 +24,7 @@ const toForm = (s: St | null, defaultType: StoryType = 'CULTURE'): Form => ({
   summaryVi: s?.summaryVi ?? '',
   content: s?.contentVi ?? '',
   internalNotes: s?.internalNotes ?? '',
+  en: enForm(s as Record<string, unknown> | null, EN),
   cover: s?.cover?.id ?? null,
 });
 
@@ -69,6 +72,7 @@ export function StoryEditor({ orgId, isAdmin, story, featured, defaultType }: { 
       toForm={(s) => toForm(s, defaultType)}
       canSave={(f) => Boolean(f.titleVi.trim())}
       payload={(f) => ({
+        ...enPayload(f.en),
         storyType: f.storyType,
         titleVi: f.titleVi,
         storyDate: f.hasDate ? f.storyDate : null,
@@ -101,6 +105,7 @@ export function StoryEditor({ orgId, isAdmin, story, featured, defaultType }: { 
             <OptionalDate label="Gắn với thời điểm" on={form.hasDate} value={form.storyDate} onToggle={(v) => set('hasDate', v)} onChange={(v) => set('storyDate', v)} />
           </div>
           <CoverField orgId={orgId} label="Ảnh bìa" value={form.cover} initial={story?.cover ?? null} onChange={(id) => set('cover', id)} />
+          <EnglishFields spec={EN} value={form.en} onChange={(v) => set('en', v)} />
           <InternalNotesField value={form.internalNotes} onChange={(v) => set('internalNotes', v)} />
         </>
       )}

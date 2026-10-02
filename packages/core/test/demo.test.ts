@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { atlasTables as a } from '@nexture/db';
 import { getAtlasStatus } from '../src/atlas';
 import { listEvents } from '../src/content/events';
 import { createDemoOrg } from '../src/demo';
+import { createCorpDemos } from '../src/demo-corps';
 import { listMembers } from '../src/members';
 import { getOrg } from '../src/orgs';
 import { db, makeUser } from './helpers';
@@ -40,5 +41,29 @@ describe('demo data', () => {
 
     const second = await createDemoOrg(u.ctx); // repeatable: new org, demo users reused
     expect(second.orgId).not.toBe(orgId);
+  });
+});
+
+describe('three-corporation demo (Vinamilk, FPT, Vingroup)', () => {
+  it('creates three live bilingual profiles where every public item cites a source', async () => {
+    const u = await makeUser('Corps');
+    u.ctx.storage = await tempStorage();
+    const { orgIds } = await createCorpDemos(u.ctx);
+    expect(orgIds).toHaveLength(3);
+    const companies = await db.select().from(a.companies).where(inArray(a.companies.orgId, orgIds));
+    expect(companies.map((c) => c.name).sort()).toEqual(['FPT (Demo)', 'Vinamilk (Demo)', 'Vingroup (Demo)']);
+    for (const c of companies) {
+      expect(c.en.shortDesc).toBeTruthy();
+      expect(c.en.cultureValues?.length).toBeGreaterThan(3);
+      expect(c.featuredStorySlug).toBeTruthy();
+    }
+    const entities = await db.select().from(a.entities).where(inArray(a.entities.orgId, orgIds));
+    expect(entities.length).toBeGreaterThan(80);
+    for (const e of entities) {
+      expect(e.sources.length, e.title).toBeGreaterThan(0);
+      if (e.entityType !== 'PERSON') expect(e.en.title, e.title).toBeTruthy();
+    }
+    const founding = entities.find((e) => e.entityType === 'EVENT' && e.companyName === 'FPT (Demo)' && e.sortDate === '1988-09-13');
+    expect(founding?.en.subtitle).toBe('Founding');
   });
 });

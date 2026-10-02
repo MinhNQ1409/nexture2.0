@@ -4,6 +4,7 @@ import { and, count, desc, inArray, sql, type SQL } from 'drizzle-orm';
 import { atlasTables as a } from '@nexture/db';
 import { db } from './db';
 import type { AtlasType, EntityCard } from './queries';
+import { locCompany, locEntity, type Lang } from './i18n';
 
 export const SEARCH_TYPES = { company: null, story: ['STORY'], event: ['EVENT'], person: ['PERSON'], product: ['PRODUCT', 'PROJECT'], project: ['PROJECT'] } as const;
 export type SearchType = keyof typeof SEARCH_TYPES;
@@ -11,7 +12,7 @@ export type SearchType = keyof typeof SEARCH_TYPES;
 const like = (col: unknown, q: string) => sql`${col} LIKE '%' || atlas.f_search_norm(${q}) || '%'`;
 const startsFirst = (col: unknown, q: string) => sql`(atlas.f_search_norm(${col}) LIKE atlas.f_search_norm(${q}) || '%') DESC`;
 
-export async function searchCompanies(q: string, limit: number, offset = 0) {
+export async function searchCompanies(q: string, limit: number, offset = 0, lang: Lang = 'vi') {
   const where = like(a.companies.searchText, q);
   const [{ total } = { total: 0 }] = await db().select({ total: count() }).from(a.companies).where(where);
   const items = await db()
@@ -21,10 +22,10 @@ export async function searchCompanies(q: string, limit: number, offset = 0) {
     .orderBy(startsFirst(a.companies.name, q), desc(a.companies.updatedAt))
     .limit(limit)
     .offset(offset);
-  return { total, items };
+  return { total, items: items.map((c) => locCompany(c, lang)) };
 }
 
-export async function searchEntities(q: string, types: readonly AtlasType[], limit: number, offset = 0) {
+export async function searchEntities(q: string, types: readonly AtlasType[], limit: number, offset = 0, lang: Lang = 'vi') {
   const where: SQL = and(like(a.entities.searchText, q), inArray(a.entities.entityType, [...types]))!;
   const [{ total } = { total: 0 }] = await db().select({ total: count() }).from(a.entities).where(where);
   const items = await db()
@@ -43,12 +44,13 @@ export async function searchEntities(q: string, types: readonly AtlasType[], lim
       coverUrl: a.entities.coverUrl,
       coverAlt: a.entities.coverAlt,
       companyName: a.entities.companyName,
+      en: a.entities.en,
     })
     .from(a.entities)
     .where(where)
     .orderBy(startsFirst(a.entities.title, q), desc(a.entities.updatedAt))
     .limit(limit)
     .offset(offset);
-  return { total, items: items as (EntityCard & { companyName: string })[] };
+  return { total, items: (items as (EntityCard & { companyName: string })[]).map((e) => locEntity(e, lang)) };
 }
 

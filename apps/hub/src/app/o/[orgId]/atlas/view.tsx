@@ -65,7 +65,7 @@ export function AtlasView({ org, initial }: { org: { id: string; name: string; s
       <Card className="flex flex-col gap-4 md:flex-row md:items-center">
         {org.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={org.logoUrl} alt="" className="size-16 rounded-md border border-hairline object-contain" />
+          <img loading="lazy" decoding="async" src={org.logoUrl} alt="" className="size-16 rounded-md border border-hairline object-contain" />
         ) : (
           <span className="inline-flex size-16 items-center justify-center rounded-md bg-primary-light text-primary">
             <Building2 size={32} strokeWidth={1.5} aria-hidden />

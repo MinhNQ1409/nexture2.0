@@ -1,14 +1,14 @@
 import 'server-only';
+import { cache } from 'react';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import type { Actor, Ctx } from '@nexture/core';
+import { getOrg, type Actor, type Ctx } from '@nexture/core';
 import { adminEmails, auth } from './auth';
 import { db } from './db';
 import { atlasNotifier, storage } from './storage';
 
-export async function getSession() {
-  return auth.api.getSession({ headers: await headers() });
-}
+/** One session lookup per request, shared by the layout and the page. */
+export const getSession = cache(async () => auth.api.getSession({ headers: await headers() }));
 
 /** NEXTURE_ADMIN from the stored role, or from NEXTURE_ADMIN_EMAILS for accounts created before the list was set. */
 export function actorOf(user: { id: string; email: string; platformRole?: unknown }): Actor {
@@ -16,9 +16,20 @@ export function actorOf(user: { id: string; email: string; platformRole?: unknow
   return { userId: user.id, platformRole: admin ? 'NEXTURE_ADMIN' : 'USER' };
 }
 
-/** For server components: redirects to /login when signed out. */
-export async function requirePageCtx(next?: string): Promise<Ctx & { user: { id: string; name: string; email: string } }> {
+type PageCtx = Ctx & { user: { id: string; name: string; email: string } };
+
+// One ctx object per request, so per-request caches keyed on it (orgOf) are shared by layout and page.
+const pageCtx = cache(async (): Promise<PageCtx | null> => {
   const s = await getSession();
-  if (!s) redirect(next ? `/login?next=${encodeURIComponent(next)}` : '/login');
-  return { db: db(), actor: actorOf(s.user), user: s.user, storage: storage(), atlas: atlasNotifier() };
+  return s ? { db: db(), actor: actorOf(s.user), user: s.user, storage: storage(), atlas: atlasNotifier() } : null;
+});
+
+/** For server components: redirects to /login when signed out. */
+export async function requirePageCtx(next?: string): Promise<PageCtx> {
+  const ctx = await pageCtx();
+  if (!ctx) redirect(next ? `/login?next=${encodeURIComponent(next)}` : '/login');
+  return ctx;
 }
+
+/** getOrg, deduplicated within one request (the org layout and its page both need it). */
+export const orgOf = cache((ctx: Ctx, orgId: string) => getOrg(ctx, orgId));

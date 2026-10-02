@@ -122,7 +122,7 @@ export function MediaDetail({ orgId, isAdmin, initial }: { orgId: string; isAdmi
           <Card className="flex flex-col items-center gap-3">
             {m.kind === 'IMAGE' ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={m.url} alt={m.altText ?? m.title} className="max-h-[480px] w-auto max-w-full rounded-md object-contain" />
+              <img loading="lazy" decoding="async" src={m.url} alt={m.altText ?? m.title} className="max-h-[480px] w-auto max-w-full rounded-md object-contain" />
             ) : m.kind === 'VIDEO' ? (
               <video src={m.url} controls className="max-h-[480px] w-full rounded-md" />
             ) : m.kind === 'AUDIO' ? (

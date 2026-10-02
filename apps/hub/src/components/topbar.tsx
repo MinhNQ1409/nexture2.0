@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Building2, ChevronDown, LogOut, Search, ShieldCheck } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
+import Form from 'next/form';
 
 type Org = { id: string; name: string };
 
@@ -39,12 +40,12 @@ export function Topbar({ org, orgs, user, isNexture }: { org: Org; orgs: Org[]; 
           </ul>
         )}
       </div>
-      <form action={`/o/${org.id}/search`} role="search" className="hidden max-w-sm flex-1 md:block">
+      <Form action={`/o/${org.id}/search`} role="search" className="hidden max-w-sm flex-1 md:block">
         <label className="flex min-h-10 items-center gap-2 rounded-md border border-hairline bg-canvas px-3 focus-within:border-primary">
           <Search size={16} strokeWidth={1.5} className="shrink-0 text-ink-mute" aria-hidden />
           <input name="q" maxLength={100} placeholder="Tìm trong Hub" aria-label="Tìm trong Hub" className="w-full bg-transparent text-body-md outline-none" />
         </label>
-      </form>
+      </Form>
       <div className="flex items-center gap-3">
         {isNexture && (
           <Link href="/nexture-admin" className="inline-flex items-center gap-2 rounded-md px-2 py-2 text-body-md font-semibold text-primary hover:bg-primary-light">

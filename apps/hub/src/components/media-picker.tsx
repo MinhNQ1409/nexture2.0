@@ -11,7 +11,7 @@ type Item = MediaRef & { status: string; visibility: string };
 export function MediaThumb({ m, className }: { m: { kind: string; url: string; title: string }; className?: string }) {
   if (m.kind === 'IMAGE') {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={m.url} alt={m.title} className={cx('object-cover', className)} />;
+    return <img loading="lazy" decoding="async" src={m.url} alt={m.title} className={cx('object-cover', className)} />;
   }
   const Icon = m.kind === 'VIDEO' ? Film : FileText;
   return (
@@ -130,7 +130,7 @@ export function CoverField({
       <div className="flex items-center gap-4">
         {shown ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={shown.url} alt={shown.title} className={cx('size-24 border border-hairline object-cover', round ? 'rounded-full' : 'rounded-md')} />
+          <img loading="lazy" decoding="async" src={shown.url} alt={shown.title} className={cx('size-24 border border-hairline object-cover', round ? 'rounded-full' : 'rounded-md')} />
         ) : (
           <span className={cx('flex size-24 items-center justify-center border border-dashed border-hairline bg-canvas-section text-caption text-ink-mute', round ? 'rounded-full' : 'rounded-md')}>
             Chưa có

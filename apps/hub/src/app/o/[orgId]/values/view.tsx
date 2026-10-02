@@ -8,8 +8,8 @@ import type { ValueDto } from '@nexture/core';
 import { Alert, Badge, Button, Card, Field, Input, PageHeader, Textarea } from '@/components/ui';
 import { api, type ApiError } from '@/lib/fetcher';
 
-type Draft = { nameVi: string; descriptionVi: string; isPublic: boolean };
-const empty: Draft = { nameVi: '', descriptionVi: '', isPublic: false };
+type Draft = { nameVi: string; descriptionVi: string; nameEn: string; descriptionEn: string; isPublic: boolean };
+const empty: Draft = { nameVi: '', descriptionVi: '', nameEn: '', descriptionEn: '', isPublic: false };
 
 function ValueForm({ initial, busy, onSave, onCancel }: { initial: Draft; busy: boolean; onSave: (d: Draft) => void; onCancel: () => void }) {
   const [d, setD] = useState(initial);
@@ -27,6 +27,17 @@ function ValueForm({ initial, busy, onSave, onCancel }: { initial: Draft; busy: 
       <Field label={`Mô tả (${d.descriptionVi.length}/1000)`}>
         <Textarea rows={3} maxLength={1000} value={d.descriptionVi} onChange={(e) => setD({ ...d, descriptionVi: e.target.value })} />
       </Field>
+      <details className="rounded-md border border-hairline" open={Boolean(d.nameEn || d.descriptionEn)}>
+        <summary className="cursor-pointer px-3 py-2 text-body-md font-semibold">Tiếng Anh cho Atlas (không bắt buộc)</summary>
+        <div className="flex flex-col gap-3 border-t border-hairline p-3">
+          <Field label="Name">
+            <Input value={d.nameEn} maxLength={100} onChange={(e) => setD({ ...d, nameEn: e.target.value })} />
+          </Field>
+          <Field label="Description">
+            <Textarea rows={2} maxLength={1000} value={d.descriptionEn} onChange={(e) => setD({ ...d, descriptionEn: e.target.value })} />
+          </Field>
+        </div>
+      </details>
       <label className="flex w-fit items-center gap-2 text-body-md">
         <input type="checkbox" className="size-4 accent-primary" checked={d.isPublic} onChange={(e) => setD({ ...d, isPublic: e.target.checked })} />
         Hiển thị trên hồ sơ Atlas
@@ -66,7 +77,7 @@ export function ValuesView({ orgId, canManage, initial }: { orgId: string; canMa
     }
   }
 
-  const body = (d: Draft) => ({ nameVi: d.nameVi, descriptionVi: d.descriptionVi || null, visibility: d.isPublic ? 'PUBLIC' : 'INTERNAL' });
+  const body = (d: Draft) => ({ nameVi: d.nameVi, descriptionVi: d.descriptionVi || null, nameEn: d.nameEn.trim() || null, descriptionEn: d.descriptionEn.trim() || null, visibility: d.isPublic ? 'PUBLIC' : 'INTERNAL' });
   const move = (i: number, by: number) => {
     const ids = items.map((v) => v.id);
     const [x] = ids.splice(i, 1);
@@ -107,7 +118,7 @@ export function ValuesView({ orgId, canManage, initial }: { orgId: string; canMa
               <Card className="border-l-4 border-l-primary">
                 {editing === v.id ? (
                   <ValueForm
-                    initial={{ nameVi: v.nameVi, descriptionVi: v.descriptionVi ?? '', isPublic: v.visibility === 'PUBLIC' }}
+                    initial={{ nameVi: v.nameVi, descriptionVi: v.descriptionVi ?? '', nameEn: v.nameEn ?? '', descriptionEn: v.descriptionEn ?? '', isPublic: v.visibility === 'PUBLIC' }}
                     busy={busy}
                     onCancel={() => setEditing(null)}
                     onSave={(d) => run(() => api(`/orgs/${orgId}/values/${v.id}`, { method: 'PATCH', json: { version: v.version, ...body(d) } }))}

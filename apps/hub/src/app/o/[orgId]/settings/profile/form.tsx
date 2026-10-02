@@ -23,6 +23,7 @@ export function ProfileForm({ org }: { org: Org }) {
     provinceCode: org.provinceCode ?? '',
     website: org.website ?? '',
     shortDescVi: org.shortDescVi ?? '',
+    shortDescEn: org.shortDescEn ?? '',
   });
   const [error, setError] = useState<ApiError | null>(null);
   const [saved, setSaved] = useState(false);
@@ -99,7 +100,7 @@ export function ProfileForm({ org }: { org: Org }) {
           <h2 className="self-start text-heading-md">Logo</h2>
           {org.logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={org.logo.url} alt={`Logo ${org.name}`} className="size-32 rounded-lg border border-hairline object-contain" />
+            <img loading="lazy" decoding="async" src={org.logo.url} alt={`Logo ${org.name}`} className="size-32 rounded-lg border border-hairline object-contain" />
           ) : (
             <div className="flex size-32 items-center justify-center rounded-lg border border-dashed border-hairline bg-canvas-section text-caption text-ink-mute">Chưa có logo</div>
           )}
@@ -162,6 +163,9 @@ export function ProfileForm({ org }: { org: Org }) {
           <Field label={`Mô tả ngắn (${f.shortDescVi.length}/300)`} error={fieldErr('shortDescVi')}>
             <Textarea rows={3} maxLength={300} value={f.shortDescVi} onChange={set('shortDescVi')} />
           </Field>
+          <Field label={`Mô tả ngắn bằng tiếng Anh (${f.shortDescEn.length}/300)`} hint="Hiện trên Atlas khi khách chọn English. Để trống sẽ hiện tiếng Việt." error={fieldErr('shortDescEn')}>
+            <Textarea rows={3} maxLength={300} value={f.shortDescEn} onChange={set('shortDescEn')} />
+          </Field>
           <div className="flex justify-end">
             <Button
               disabled={busy}
@@ -175,6 +179,7 @@ export function ProfileForm({ org }: { org: Org }) {
                   provinceCode: f.provinceCode || null,
                   website: f.website || null,
                   shortDescVi: f.shortDescVi || null,
+                  shortDescEn: f.shortDescEn || null,
                 })
               }
             >

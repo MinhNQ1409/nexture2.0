@@ -2,15 +2,15 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ACTIVITY_LABELS, TARGET_TYPE_LABELS } from '@nexture/contracts';
-import { canOrg, getOrg, listActivity } from '@nexture/core';
+import { canOrg, listActivity } from '@nexture/core';
 import { Card, PageHeader, tableHead, tableRow } from '@/components/ui';
 import { activityHref, showValue } from '@/lib/activity';
-import { requirePageCtx } from '@/lib/session';
+import { orgOf, requirePageCtx } from '@/lib/session';
 
 export default async function ActivityPage({ params, searchParams }: { params: Promise<{ orgId: string }>; searchParams: Promise<{ page?: string }> }) {
   const { orgId } = await params;
   const ctx = await requirePageCtx();
-  const org = await getOrg(ctx, orgId);
+  const org = await orgOf(ctx, orgId);
   if (!canOrg(org.myRole, 'activity.view')) notFound();
   const page = Math.max(1, Number((await searchParams).page) || 1);
   const r = await listActivity(ctx, orgId, { page, pageSize: 30 });

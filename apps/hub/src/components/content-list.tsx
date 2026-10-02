@@ -19,6 +19,7 @@ import {
   tableHead,
   tableRow,
 } from "@/components/ui";
+import Form from 'next/form';
 
 type Fuzzy = { date: string; precision: "YEAR" | "MONTH" | "DAY" } | null;
 export type ListItem = {
@@ -74,7 +75,7 @@ export function ContentList(props: {
           )
         }
       />
-      <form className="flex flex-wrap gap-2" action="">
+      <Form className="flex flex-wrap gap-2" action={base}>
         <input
           name="q"
           defaultValue={sp.q ?? ""}
@@ -109,7 +110,7 @@ export function ContentList(props: {
         </div>
         {props.filters}
         <button className={linkButton("secondary")}>Lọc</button>
-      </form>
+      </Form>
 
       {list.items.length === 0 ? (
         <div className="flex min-h-80 flex-col items-center justify-center gap-3 rounded-lg border border-hairline bg-canvas-white p-12 text-center">
@@ -161,7 +162,7 @@ export function ContentList(props: {
                     <div className="flex items-center gap-3">
                       {e.thumbnailUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={e.thumbnailUrl} alt="" className="size-10 shrink-0 rounded-md border border-hairline object-cover" />
+                        <img loading="lazy" decoding="async" src={e.thumbnailUrl} alt="" className="size-10 shrink-0 rounded-md border border-hairline object-cover" />
                       ) : (
                         <span className="size-10 shrink-0 rounded-md bg-canvas-section" aria-hidden />
                       )}

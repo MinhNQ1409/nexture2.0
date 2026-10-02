@@ -1,12 +1,12 @@
 import { notFound } from 'next/navigation';
-import { AppError, getOrg, getProduct } from '@nexture/core';
-import { requirePageCtx } from '@/lib/session';
+import { AppError, getProduct } from '@nexture/core';
+import { orgOf, requirePageCtx } from '@/lib/session';
 import { ProductEditor } from '../editor';
 
 export default async function ProductPage({ params }: { params: Promise<{ orgId: string; id: string }> }) {
   const { orgId, id } = await params;
   const ctx = await requirePageCtx();
-  const org = await getOrg(ctx, orgId);
+  const org = await orgOf(ctx, orgId);
   const product = await getProduct(ctx, orgId, id).catch((e) => {
     if (e instanceof AppError) notFound();
     throw e;

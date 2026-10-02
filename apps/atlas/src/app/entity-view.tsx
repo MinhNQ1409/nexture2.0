@@ -4,6 +4,7 @@ import { ArrowLeft, Building2, CalendarDays } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { eventDate } from '@/lib/dates';
 import { entityHref, getCompany, getGallery, getRelated, type EntityCard } from '@/lib/queries';
+import { getT, type Dict, type Lang } from '@/lib/i18n';
 
 type Entity = {
   id: string;
@@ -24,24 +25,24 @@ type Entity = {
   sources: { title: string; url: string | null; note: string | null }[];
 };
 
-const GROUPS: [string[], string][] = [
-  [['PERSON'], 'Con người'],
-  [['EVENT'], 'Sự kiện'],
-  [['STORY'], 'Câu chuyện'],
-  [['PRODUCT', 'PROJECT'], 'Sản phẩm & Dự án'],
+const GROUPS: [string[], keyof Dict][] = [
+  [['PERSON'], 'people'],
+  [['EVENT'], 'events'],
+  [['STORY'], 'stories'],
+  [['PRODUCT', 'PROJECT'], 'productsProjects'],
 ];
 
-export function RelatedCard({ e }: { e: EntityCard }) {
-  const when = eventDate(e.sortDate, e.datePrecision);
+export function RelatedCard({ e, lang }: { e: EntityCard; lang: Lang }) {
+  const when = eventDate(e.sortDate, e.datePrecision, null, null, lang);
   return (
     <Link href={entityHref(e.entityType, e.slug)} className="flex flex-col gap-1 overflow-hidden rounded-lg border border-hairline bg-canvas-white p-4 shadow-card transition-colors duration-[120ms] hover:bg-canvas-section">
       {e.coverUrl &&
         (e.entityType === 'PERSON' ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={e.coverUrl} alt="" className="mb-2 size-16 rounded-full object-cover" />
+          <img src={e.coverUrl} alt="" loading="lazy" decoding="async" className="mb-2 size-16 rounded-full object-cover" />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={e.coverUrl} alt="" className="-mx-4 -mt-4 mb-2 aspect-[16/9] w-[calc(100%+2rem)] max-w-none object-cover" />
+          <img src={e.coverUrl} alt="" loading="lazy" decoding="async" className="-mx-4 -mt-4 mb-2 aspect-[16/9] w-[calc(100%+2rem)] max-w-none object-cover" />
         ))}
       <span className="text-caption text-ink-mute">{[e.subtitle, e.entityType !== 'PERSON' && when].filter(Boolean).join(' · ')}</span>
       <span className="font-display text-heading-sm text-ink">{e.title}</span>
@@ -51,9 +52,10 @@ export function RelatedCard({ e }: { e: EntityCard }) {
 }
 
 export async function EntityView({ e, label, meta, children }: { e: Entity; label?: string | null; meta?: ReactNode; children?: ReactNode }) {
-  const [related, company, gallery] = await Promise.all([getRelated(e.id, e.companySlug), getCompany(e.companySlug), getGallery(e.id, e.companySlug)]);
+  const { lang, t } = await getT();
+  const [related, company, gallery] = await Promise.all([getRelated(e.id, e.companySlug, lang), getCompany(e.companySlug, lang), getGallery(e.id, e.companySlug)]);
   const values = (e.extra.values as string[] | undefined) ?? [];
-  const when = eventDate(e.sortDate, e.datePrecision, e.endDate, e.endDatePrecision);
+  const when = eventDate(e.sortDate, e.datePrecision, e.endDate, e.endDatePrecision, lang);
 
   return (
     <article className="mx-auto flex w-full max-w-reading flex-col gap-6">
@@ -63,12 +65,12 @@ export async function EntityView({ e, label, meta, children }: { e: Entity; labe
       </Link>
       {e.coverUrl && e.entityType !== 'PERSON' && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={e.coverUrl} alt={e.coverAlt ?? ''} className="aspect-[16/9] w-full rounded-lg object-cover" />
+        <img fetchPriority="high" src={e.coverUrl} alt={e.coverAlt ?? ''} className="aspect-[16/9] w-full rounded-lg object-cover" />
       )}
       <header className="flex flex-col gap-3">
         {e.coverUrl && e.entityType === 'PERSON' && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={e.coverUrl} alt={e.coverAlt ?? e.title} className="size-32 rounded-full object-cover" />
+          <img fetchPriority="high" src={e.coverUrl} alt={e.coverAlt ?? e.title} className="size-32 rounded-full object-cover" />
         )}
         {label && <p className="text-body-md font-medium text-primary">{label}</p>}
         <h1 className="text-display-md md:text-display-lg">{e.title}</h1>
@@ -94,7 +96,7 @@ export async function EntityView({ e, label, meta, children }: { e: Entity; labe
       {children}
       {gallery.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-heading-md">Hình ảnh</h2>
+          <h2 className="text-heading-md">{t.images}</h2>
           <ul className="grid gap-3 sm:grid-cols-2">
             {gallery.map((m) => (
               <li key={m.id}>
@@ -114,7 +116,7 @@ export async function EntityView({ e, label, meta, children }: { e: Entity; labe
       )}
       {values.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-heading-sm">Giá trị thể hiện</h2>
+          <h2 className="text-heading-sm">{t.valuesShown}</h2>
           <ul className="flex flex-wrap gap-2">
             {values.map((v) => (
               <li key={v} className="rounded-full bg-primary-light px-3 py-1 text-body-md text-primary">
@@ -124,7 +126,8 @@ export async function EntityView({ e, label, meta, children }: { e: Entity; labe
           </ul>
         </section>
       )}
-      {GROUPS.map(([types, title]) => {
+      {GROUPS.map(([types, key]) => {
+        const title = t[key] as string;
         const items = related.filter((r) => types.includes(r.entityType));
         if (!items.length) return null;
         return (
@@ -132,7 +135,7 @@ export async function EntityView({ e, label, meta, children }: { e: Entity; labe
             <h2 className="text-heading-md">{title}</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {items.map((r) => (
-                <RelatedCard key={r.id} e={r} />
+                <RelatedCard key={r.id} e={r} lang={lang} />
               ))}
             </div>
           </section>
@@ -140,7 +143,7 @@ export async function EntityView({ e, label, meta, children }: { e: Entity; labe
       })}
       {e.sources.length > 0 && (
         <section className="flex flex-col gap-2 border-t border-hairline pt-4">
-          <h2 className="text-heading-sm">Nguồn</h2>
+          <h2 className="text-heading-sm">{t.sources}</h2>
           <ul className="flex flex-col gap-1 text-body-md text-ink-mute">
             {e.sources.map((s) => (
               <li key={s.title}>
@@ -161,14 +164,14 @@ export async function EntityView({ e, label, meta, children }: { e: Entity; labe
         <Link href={`/companies/${company.slug}`} className="flex items-center gap-4 rounded-lg border border-hairline bg-canvas-white p-5 shadow-card hover:bg-canvas-section">
           {company.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={company.logoUrl} alt="" className="size-14 shrink-0 rounded-md object-contain" />
+            <img loading="lazy" decoding="async" src={company.logoUrl} alt="" className="size-14 shrink-0 rounded-md object-contain" />
           ) : (
             <span className="inline-flex size-14 shrink-0 items-center justify-center rounded-md bg-primary-light text-primary">
               <Building2 size={24} strokeWidth={1.5} aria-hidden />
             </span>
           )}
           <span className="min-w-0">
-            <span className="block text-caption text-ink-mute">Về doanh nghiệp</span>
+            <span className="block text-caption text-ink-mute">{t.aboutCompany}</span>
             <span className="block font-display text-heading-sm">{company.name}</span>
             {company.shortDesc && <span className="line-clamp-2 block text-body-md text-ink-mute">{company.shortDesc}</span>}
           </span>

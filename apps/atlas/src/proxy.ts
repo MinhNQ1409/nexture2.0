@@ -20,12 +20,16 @@ async function isGone(path: string): Promise<boolean> {
   return false;
 }
 
-const GONE_HTML = `<!doctype html><html lang="vi"><meta charset="utf-8"><title>Không còn hiển thị · Culture Atlas</title>
-<body style="font-family:Inter,system-ui,sans-serif;color:#2C3E50;background:#F6F7F9;max-width:760px;margin:4rem auto;padding:0 1rem"><h1 style="font-family:'Be Vietnam Pro',system-ui,sans-serif">Nội dung này không còn hiển thị trên Atlas.</h1><p><a href="/" style="color:#075E9A">Về trang chủ</a></p></body></html>`;
+const GONE = {
+  vi: { title: 'Không còn hiển thị', body: 'Nội dung này không còn hiển thị trên Atlas.', home: 'Về trang chủ' },
+  en: { title: 'No longer available', body: 'This content is no longer shown on the Atlas.', home: 'Back to home' },
+};
+const goneHtml = (lang: 'vi' | 'en') => `<!doctype html><html lang="${lang}"><meta charset="utf-8"><title>${GONE[lang].title} · Culture Atlas</title>
+<body style="font-family:Inter,system-ui,sans-serif;color:#2C3E50;background:#F6F7F9;max-width:760px;margin:4rem auto;padding:0 1rem"><h1 style="font-family:'Be Vietnam Pro',system-ui,sans-serif">${GONE[lang].body}</h1><p><a href="/" style="color:#075E9A">${GONE[lang].home}</a></p></body></html>`;
 
 export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname.replace(/\/$/, '');
-  if (await isGone(path)) return new NextResponse(GONE_HTML, { status: 410, headers: { 'content-type': 'text/html; charset=utf-8' } });
+  if (await isGone(path)) return new NextResponse(goneHtml(req.cookies.get('atlas_lang')?.value === 'en' ? 'en' : 'vi'), { status: 410, headers: { 'content-type': 'text/html; charset=utf-8' } });
   return NextResponse.next();
 }
 

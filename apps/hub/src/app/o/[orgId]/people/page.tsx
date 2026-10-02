@@ -1,7 +1,7 @@
 import { Users } from "lucide-react";
-import { canOrg, getOrg, listPeople } from "@nexture/core";
+import { canOrg, listPeople } from "@nexture/core";
 import { ContentList } from "@/components/content-list";
-import { requirePageCtx } from "@/lib/session";
+import { orgOf, requirePageCtx } from "@/lib/session";
 
 export default async function PeoplePage({
   params,
@@ -13,7 +13,7 @@ export default async function PeoplePage({
   const { orgId } = await params;
   const sp = await searchParams;
   const ctx = await requirePageCtx();
-  const org = await getOrg(ctx, orgId);
+  const org = await orgOf(ctx, orgId);
   return (
     <ContentList
       orgId={orgId}

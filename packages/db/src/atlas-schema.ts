@@ -24,7 +24,11 @@ export const companies = atlas.table('companies', {
   firstPublishedAt: tz('first_published_at').notNull(),
   updatedAt: tz('updated_at').notNull(),
   searchText: text('search_text').notNull(),
+  en: jsonb('en').$type<CompanyEn>().notNull().default({}),
 });
+
+export type CompanyEn = { shortDesc?: string; cultureValues?: { name: string; description: string | null }[]; industryName?: string; provinceName?: string };
+export type EntityEn = { title?: string; subtitle?: string; summary?: string; bodyHtml?: string; extra?: Record<string, unknown> };
 
 export type AtlasEntityType = 'STORY' | 'EVENT' | 'PERSON' | 'PRODUCT' | 'PROJECT';
 
@@ -50,6 +54,7 @@ export const entities = atlas.table('entities', {
   publishedAt: tz('published_at').notNull(),
   updatedAt: tz('updated_at').notNull(),
   searchText: text('search_text').notNull(),
+  en: jsonb('en').$type<EntityEn>().notNull().default({}),
 });
 
 export const relations = atlas.table(

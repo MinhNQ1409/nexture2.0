@@ -3,7 +3,8 @@
 import { and, asc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { Tx } from '@nexture/db';
 import { atlasTables as a, coreTables as t } from '@nexture/db';
-import { EMPLOYEE_SIZES, EVENT_TYPE_LABELS, PP_KIND_LABELS, STORY_TYPE_LABELS, industryName, provinceName } from '@nexture/contracts';
+import type { EntityEn } from '@nexture/db/atlas';
+import { EMPLOYEE_SIZES, EVENT_TYPE_LABELS, EVENT_TYPE_LABELS_EN, PP_KIND_LABELS, PP_KIND_LABELS_EN, STORY_TYPE_LABELS, STORY_TYPE_LABELS_EN, industryName, industryNameEn, provinceName, provinceNameEn } from '@nexture/contracts';
 import type { Storage } from '../storage';
 import { makeSlug } from '../slug';
 import { isOrgPublic, isPublic } from './rules';
@@ -45,7 +46,7 @@ async function tombstone(tx: Tx, path: string) {
 }
 
 /** Public names of culture values linked to an entity (08 §6). */
-async function linkedValueNames(tx: Tx, entityType: 'EVENT' | 'STORY', id: string): Promise<string[]> {
+async function linkedValueNames(tx: Tx, entityType: 'EVENT' | 'STORY', id: string): Promise<{ vi: string[]; en: string[] }> {
   const rels = await tx
     .select({ s: t.relationships.sourceId, st: t.relationships.sourceType, tg: t.relationships.targetId })
     .from(t.relationships)
@@ -56,13 +57,13 @@ async function linkedValueNames(tx: Tx, entityType: 'EVENT' | 'STORY', id: strin
       ),
     );
   const ids = rels.map((r) => (r.st === 'CULTURE_VALUE' ? r.s : r.tg));
-  if (!ids.length) return [];
+  if (!ids.length) return { vi: [], en: [] };
   const rows = await tx
-    .select({ name: t.cultureValues.nameVi })
+    .select({ name: t.cultureValues.nameVi, nameEn: t.cultureValues.nameEn })
     .from(t.cultureValues)
     .where(and(inArray(t.cultureValues.id, ids), eq(t.cultureValues.visibility, 'PUBLIC'), isNull(t.cultureValues.deletedAt)))
     .orderBy(asc(t.cultureValues.sortOrder));
-  return rows.map((r) => r.name);
+  return { vi: rows.map((r) => r.name), en: rows.map((r) => r.nameEn ?? r.name) };
 }
 
 export async function publicSources(tx: Tx, entityType: PublicEntityType, id: string) {
@@ -94,19 +95,26 @@ type Projection = {
   datePrecision: string | null;
   endDate: string | null;
   endDatePrecision: string | null;
+  en: EntityEn;
 };
+
+/** Drops empty English fields so Atlas falls back to Vietnamese per field. */
+const compact = <T extends Record<string, unknown>>(o: T) =>
+  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== null && v !== undefined && v !== '')) as { [K in keyof T]?: NonNullable<T[K]> };
 
 /** 08 §3 whitelist, per type. */
 export async function project(tx: Tx, type: PublicEntityType, row: AnyRow): Promise<Projection> {
   switch (type) {
     case 'STORY': {
       const s = row as StoryRow;
+      const values = await linkedValueNames(tx, 'STORY', s.id);
       return {
         title: s.titleVi,
         subtitle: STORY_TYPE_LABELS[s.storyType],
         summary: s.summaryVi,
         bodyHtml: s.contentVi,
-        extra: { values: await linkedValueNames(tx, 'STORY', s.id) },
+        extra: { values: values.vi },
+        en: compact({ title: s.titleEn, subtitle: STORY_TYPE_LABELS_EN[s.storyType], summary: s.summaryEn, bodyHtml: s.contentEn, extra: { values: values.en } }),
         sortDate: s.storyDate,
         datePrecision: s.storyDatePrecision,
         endDate: null,
@@ -115,12 +123,14 @@ export async function project(tx: Tx, type: PublicEntityType, row: AnyRow): Prom
     }
     case 'EVENT': {
       const e = row as EventRow;
+      const values = await linkedValueNames(tx, 'EVENT', e.id);
       return {
         title: e.titleVi,
         subtitle: EVENT_TYPE_LABELS[e.eventType],
         summary: e.summaryVi,
         bodyHtml: e.contentVi,
-        extra: { values: await linkedValueNames(tx, 'EVENT', e.id), eventType: e.eventType },
+        extra: { values: values.vi, eventType: e.eventType },
+        en: compact({ title: e.titleEn, subtitle: EVENT_TYPE_LABELS_EN[e.eventType], summary: e.summaryEn, bodyHtml: e.contentEn, extra: { values: values.en, eventType: e.eventType } }),
         sortDate: e.startDate,
         datePrecision: e.startDatePrecision,
         endDate: e.endDate,
@@ -135,6 +145,7 @@ export async function project(tx: Tx, type: PublicEntityType, row: AnyRow): Prom
         summary: null,
         bodyHtml: p.bioVi,
         extra: { isFounder: p.isFounder, contributionsHtml: p.contributionsVi },
+        en: compact({ subtitle: p.roleTitleEn, bodyHtml: p.bioEn, extra: { isFounder: p.isFounder, contributionsHtml: p.contributionsEn ?? p.contributionsVi } }),
         sortDate: p.joinedDate,
         datePrecision: p.joinedDatePrecision,
         endDate: p.leftDate,
@@ -149,6 +160,7 @@ export async function project(tx: Tx, type: PublicEntityType, row: AnyRow): Prom
         summary: p.summaryVi,
         bodyHtml: p.descriptionVi,
         extra: { status: p.ppStatus },
+        en: compact({ title: p.titleEn, subtitle: PP_KIND_LABELS_EN[p.kind], summary: p.summaryEn, bodyHtml: p.descriptionEn }),
         sortDate: p.launchDate,
         datePrecision: p.launchDatePrecision,
         endDate: null,
@@ -191,7 +203,7 @@ async function syncEntity(tx: Tx, storage: Storage | undefined, type: PublicEnti
       sources: await publicSources(tx, type, id),
       publishedAt: existing?.publishedAt ?? new Date(),
       updatedAt: new Date(),
-      searchText: sql`atlas.f_search_norm(${[p.title, p.subtitle ?? '', p.summary ?? '', org.name].join(' ')})`,
+      searchText: sql`atlas.f_search_norm(${[p.title, p.subtitle ?? '', p.summary ?? '', org.name, p.en.title ?? ''].join(' ')})`,
     };
     await tx.insert(a.entities).values(row).onConflictDoUpdate({ target: a.entities.id, set: { ...row, id: undefined } });
     await syncGallery(tx, storage, org, type, id);
@@ -333,7 +345,7 @@ async function publicLogoUrl(tx: Tx, storage: Storage | undefined, org: OrgRow) 
 async function rebuildCompany(tx: Tx, storage: Storage | undefined, org: OrgRow, out: SyncResult) {
   if (!isOrgPublic(org)) return;
   const values = await tx
-    .select({ name: t.cultureValues.nameVi, description: t.cultureValues.descriptionVi })
+    .select({ name: t.cultureValues.nameVi, description: t.cultureValues.descriptionVi, nameEn: t.cultureValues.nameEn, descriptionEn: t.cultureValues.descriptionEn })
     .from(t.cultureValues)
     .where(and(eq(t.cultureValues.organizationId, org.id), eq(t.cultureValues.visibility, 'PUBLIC'), isNull(t.cultureValues.deletedAt)))
     .orderBy(asc(t.cultureValues.sortOrder));
@@ -354,7 +366,13 @@ async function rebuildCompany(tx: Tx, storage: Storage | undefined, org: OrgRow,
     featuredStorySlug: org.featuredStoryId
       ? ((await tx.select({ slug: a.entities.slug }).from(a.entities).where(and(eq(a.entities.id, org.featuredStoryId), eq(a.entities.entityType, 'STORY'))))[0]?.slug ?? null)
       : null,
-    cultureValues: values,
+    cultureValues: values.map((v) => ({ name: v.name, description: v.description })),
+    en: compact({
+      shortDesc: org.shortDescEn,
+      cultureValues: values.map((v) => ({ name: v.nameEn ?? v.name, description: v.descriptionEn ?? v.description })),
+      industryName: industryNameEn(org.industryCode),
+      provinceName: provinceNameEn(org.provinceCode),
+    }),
     publicEntityCount: n,
     firstPublishedAt: org.atlasFirstEnabledAt ?? new Date(),
     updatedAt: new Date(),

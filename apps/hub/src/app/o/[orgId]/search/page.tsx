@@ -1,4 +1,5 @@
 // Hub search (06 §13): server-rendered from the query string so results are linkable.
+import Form from 'next/form';
 import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { STATUS_LABELS } from '@nexture/contracts';
@@ -36,7 +37,7 @@ export default async function SearchPage({ params, searchParams }: { params: Pro
   return (
     <div className="mx-auto flex w-full max-w-standard flex-col gap-4">
       <PageHeader title="Tìm kiếm" description="Tìm trong câu chuyện, sự kiện, con người, sản phẩm và tư liệu. Không cần gõ dấu." />
-      <form className="flex flex-col gap-3">
+      <Form action={`/o/${orgId}/search`} className="flex flex-col gap-3">
         <div className="flex gap-2">
           <label className="flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-md border border-hairline-strong bg-canvas-white px-4 focus-within:border-primary">
             <Search size={20} strokeWidth={1.5} className="shrink-0 text-ink-mute" aria-hidden />
@@ -76,7 +77,7 @@ export default async function SearchPage({ params, searchParams }: { params: Pro
             <input name="yearTo" defaultValue={yearTo} inputMode="numeric" pattern="[0-9]{4}" maxLength={4} placeholder="đến" aria-label="Đến năm" className={`${control} w-20`} />
           </span>
         </div>
-      </form>
+      </Form>
 
       {!q ? null : q.length < 2 ? (
         <p className="text-body-md text-ink-mute">Nhập ít nhất 2 ký tự.</p>
@@ -101,7 +102,7 @@ export default async function SearchPage({ params, searchParams }: { params: Pro
                   <Link href={`/o/${orgId}/${g.collection}/${i.id}`} className="flex items-center gap-3 py-2 hover:text-primary">
                     {i.thumbnailUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={i.thumbnailUrl} alt="" className="size-10 shrink-0 rounded-md object-cover" />
+                      <img loading="lazy" decoding="async" src={i.thumbnailUrl} alt="" className="size-10 shrink-0 rounded-md object-cover" />
                     ) : (
                       <span className="size-10 shrink-0 rounded-md bg-canvas-section" aria-hidden />
                     )}

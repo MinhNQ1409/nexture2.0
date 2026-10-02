@@ -10,9 +10,12 @@ export default async function NewOrgPage() {
       <Card className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-heading-sm">Chỉ muốn xem thử?</h2>
-          <p className="text-body-md text-ink-mute">Tạo ngay một doanh nghiệp demo có đủ dữ liệu, không cần điền gì.</p>
+          <p className="text-body-md text-ink-mute">Tạo ngay một doanh nghiệp demo có đủ dữ liệu, hoặc nạp hồ sơ song ngữ của Vinamilk, FPT và Vingroup.</p>
         </div>
-        <DemoButton />
+        <div className="flex flex-wrap gap-2">
+          <DemoButton />
+          <DemoButton set="corps" />
+        </div>
       </Card>
       <NewOrgWizard />
     </main>

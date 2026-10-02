@@ -21,6 +21,7 @@ export const PUBLIC_ENTITY_COLUMNS = [
   'publishedAt',
   'updatedAt',
   'searchText',
+  'en',
 ] as const;
 
 export const PUBLIC_EVENT_EXTRA_KEYS = ['values', 'eventType'] as const;

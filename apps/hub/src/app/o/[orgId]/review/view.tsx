@@ -131,7 +131,7 @@ export function ReviewView({ orgId, isAdmin, initial }: { orgId: string; isAdmin
                     <div className="flex items-center gap-3">
                       {i.thumbnailUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={i.thumbnailUrl} alt="" className="size-10 shrink-0 rounded-md object-cover" />
+                        <img loading="lazy" decoding="async" src={i.thumbnailUrl} alt="" className="size-10 shrink-0 rounded-md object-cover" />
                       ) : (
                         <span className="size-10 shrink-0 rounded-md bg-canvas-section" aria-hidden />
                       )}

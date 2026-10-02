@@ -1,11 +1,11 @@
-import { canOrg, getOrg, listPeople, listValues, timeline } from '@nexture/core';
-import { requirePageCtx } from '@/lib/session';
+import { canOrg, listPeople, listValues, timeline } from '@nexture/core';
+import { orgOf, requirePageCtx } from '@/lib/session';
 import { TimelineView } from './view';
 
 export default async function TimelinePage({ params }: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await params;
   const ctx = await requirePageCtx();
-  const org = await getOrg(ctx, orgId);
+  const org = await orgOf(ctx, orgId);
   const [data, people, values] = await Promise.all([timeline(ctx, orgId), listPeople(ctx, orgId, { pageSize: 100, sort: 'name_asc' }), listValues(ctx, orgId)]);
   return (
     <TimelineView

@@ -2,5 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @nexture/db migrate && pnpm --filter @nexture/core setup-storage && pnpm --filter @nexture/hub build"
+  "buildCommand": "pnpm --filter @nexture/db migrate && pnpm --filter @nexture/core setup-storage && pnpm --filter @nexture/hub build",
+  "regions": [
+    "sin1"
+  ]
 }

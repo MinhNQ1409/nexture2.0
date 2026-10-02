@@ -1,9 +1,9 @@
 import { BookOpen } from "lucide-react";
 import { STORY_TYPE_LABELS, STORY_TYPES } from "@nexture/contracts";
-import { canOrg, getOrg, listStories } from "@nexture/core";
+import { canOrg, listStories } from "@nexture/core";
 import { ContentList } from "@/components/content-list";
 import { Select } from "@/components/ui";
-import { requirePageCtx } from "@/lib/session";
+import { orgOf, requirePageCtx } from "@/lib/session";
 
 export default async function StoriesPage({
   params,
@@ -15,7 +15,7 @@ export default async function StoriesPage({
   const { orgId } = await params;
   const sp = await searchParams;
   const ctx = await requirePageCtx();
-  const org = await getOrg(ctx, orgId);
+  const org = await orgOf(ctx, orgId);
   return (
     <ContentList
       orgId={orgId}

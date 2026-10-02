@@ -1,9 +1,9 @@
 import { Package } from "lucide-react";
 import { PP_KIND_LABELS, PP_KINDS } from "@nexture/contracts";
-import { canOrg, getOrg, listProducts } from "@nexture/core";
+import { canOrg, listProducts } from "@nexture/core";
 import { ContentList } from "@/components/content-list";
 import { Select } from "@/components/ui";
-import { requirePageCtx } from "@/lib/session";
+import { orgOf, requirePageCtx } from "@/lib/session";
 
 export default async function ProductsPage({
   params,
@@ -15,7 +15,7 @@ export default async function ProductsPage({
   const { orgId } = await params;
   const sp = await searchParams;
   const ctx = await requirePageCtx();
-  const org = await getOrg(ctx, orgId);
+  const org = await orgOf(ctx, orgId);
   return (
     <ContentList
       orgId={orgId}

@@ -2,36 +2,15 @@
 import type { ComponentProps } from 'react';
 import { CircleAlert, CircleCheck, X } from 'lucide-react';
 
-export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
+import { BUTTON, cx, type ButtonVariant } from './variants';
+import { Button } from './button';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'ghost-primary' | 'danger';
-const BUTTON: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-on-primary hover:bg-primary-dark active:bg-primary-dark',
-  secondary: 'bg-primary-light text-primary-dark hover:bg-canvas-section',
-  ghost: 'bg-transparent text-ink hover:bg-canvas-section',
-  'ghost-primary': 'bg-transparent text-primary hover:bg-primary-light',
-  danger: 'bg-error text-on-primary hover:opacity-90',
-};
+export { Button, cx };
+export type { ButtonVariant };
 
 /** Button look for a <Link>. */
 export const linkButton = (variant: ButtonVariant = 'primary') =>
   cx('inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-md px-5 text-button-md transition-colors duration-[120ms] ease-out', BUTTON[variant]);
-
-export function Button({ variant = 'primary', size = 'md', className, ...p }: ComponentProps<'button'> & { variant?: ButtonVariant; size?: 'sm' | 'md' }) {
-  return (
-    <button
-      type="button"
-      {...p}
-      className={cx(
-        'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap transition-colors duration-[120ms] ease-out',
-        'disabled:cursor-not-allowed disabled:bg-disabled-bg disabled:text-disabled-text',
-        size === 'md' ? 'min-h-11 rounded-md px-5 text-button-md' : 'min-h-10 rounded-sm px-3.5 text-button-sm',
-        BUTTON[variant],
-        className,
-      )}
-    />
-  );
-}
 
 const control =
   'w-full rounded-md border border-hairline bg-canvas-white px-3 py-2.5 text-body-md text-ink disabled:cursor-not-allowed disabled:bg-disabled-bg disabled:text-disabled-text aria-[invalid=true]:outline-2 aria-[invalid=true]:outline-error';

@@ -6,10 +6,12 @@ import { CoverField } from '@/components/media-picker';
 import { ContentEditor, Html, InternalNotesField, type ContentBase } from '@/components/content-editor';
 import { OptionalDate, thisYear, type FuzzyValue } from '@/components/fuzzy-date';
 import { Field, Input, Select, Textarea } from '@/components/ui';
+import { EnglishFields, enForm, enPayload, type EnForm, type EnSpec } from '@/components/english-fields';
 import { RichText } from '@/components/rich-text';
 
 type Pr = ProductDto & ContentBase;
-type Form = { kind: PpKind; titleVi: string; summaryVi: string; hasLaunch: boolean; launchDate: FuzzyValue; ppStatus: PpStatus; description: string; internalNotes: string; cover: string | null };
+const EN: EnSpec[] = [{ key: 'titleEn', label: 'Name', kind: 'input', max: 200 }, { key: 'summaryEn', label: 'Summary', kind: 'textarea', max: 500 }, { key: 'descriptionEn', label: 'Description', kind: 'rich' }];
+type Form = { kind: PpKind; titleVi: string; summaryVi: string; hasLaunch: boolean; launchDate: FuzzyValue; ppStatus: PpStatus; description: string; internalNotes: string; en: EnForm; cover: string | null };
 
 const toForm = (p: Pr | null, kind: PpKind = 'PRODUCT'): Form => ({
   kind: p?.kind ?? kind,
@@ -20,6 +22,7 @@ const toForm = (p: Pr | null, kind: PpKind = 'PRODUCT'): Form => ({
   ppStatus: p?.ppStatus ?? 'ACTIVE',
   description: p?.descriptionVi ?? '',
   internalNotes: p?.internalNotes ?? '',
+  en: enForm(p as Record<string, unknown> | null, EN),
   cover: p?.cover?.id ?? null,
 });
 
@@ -36,6 +39,7 @@ export function ProductEditor({ orgId, isAdmin, product, kind }: { orgId: string
       toForm={(p) => toForm(p, kind)}
       canSave={(f) => Boolean(f.titleVi.trim())}
       payload={(f) => ({
+        ...enPayload(f.en),
         kind: f.kind,
         titleVi: f.titleVi,
         summaryVi: f.summaryVi || null,
@@ -84,6 +88,7 @@ export function ProductEditor({ orgId, isAdmin, product, kind }: { orgId: string
           </div>
           <RichText label="Mô tả" value={form.description} onChange={(v) => set('description', v)} />
           <CoverField orgId={orgId} label="Ảnh bìa" value={form.cover} initial={product?.cover ?? null} onChange={(id) => set('cover', id)} />
+          <EnglishFields spec={EN} value={form.en} onChange={(v) => set('en', v)} />
           <InternalNotesField value={form.internalNotes} onChange={(v) => set('internalNotes', v)} />
         </>
       )}

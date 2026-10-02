@@ -87,12 +87,12 @@ export function PreviewDialog({ orgId, collection, id, onClose, onPublish }: { o
                 <p className="text-body-md text-link">← {p.companyName}</p>
                 {p.cover && !isPerson && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.cover.url} alt={p.cover.alt} className="aspect-[16/9] w-full rounded-lg object-cover" />
+                  <img loading="lazy" decoding="async" src={p.cover.url} alt={p.cover.alt} className="aspect-[16/9] w-full rounded-lg object-cover" />
                 )}
                 <header className="flex flex-col gap-3">
                   {p.cover && isPerson && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.cover.url} alt={p.cover.alt} className="size-32 rounded-full object-cover" />
+                    <img loading="lazy" decoding="async" src={p.cover.url} alt={p.cover.alt} className="size-32 rounded-full object-cover" />
                   )}
                   {p.subtitle && <p className="text-body-md font-medium text-primary">{p.subtitle}</p>}
                   <h1 className="text-display-md">{p.title}</h1>
@@ -128,7 +128,7 @@ export function PreviewDialog({ orgId, collection, id, onClose, onPublish }: { o
                               <video src={m.url} controls preload="metadata" className="aspect-[4/3] w-full rounded-md bg-canvas-section object-cover" />
                             ) : (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={m.url} alt={m.caption ?? m.title} className="aspect-[4/3] w-full rounded-md object-cover" />
+                              <img loading="lazy" decoding="async" src={m.url} alt={m.caption ?? m.title} className="aspect-[4/3] w-full rounded-md object-cover" />
                             )}
                             {m.caption && <figcaption className="text-caption text-ink-mute">{m.caption}</figcaption>}
                           </figure>
@@ -182,7 +182,7 @@ export function PreviewDialog({ orgId, collection, id, onClose, onPublish }: { o
                 <div className="flex items-center gap-4 rounded-lg border border-hairline p-5 shadow-card">
                   {p.companyLogoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.companyLogoUrl} alt="" className="size-14 shrink-0 rounded-md object-contain" />
+                    <img loading="lazy" decoding="async" src={p.companyLogoUrl} alt="" className="size-14 shrink-0 rounded-md object-contain" />
                   ) : (
                     <span className="inline-flex size-14 shrink-0 items-center justify-center rounded-md bg-primary-light text-primary">
                       <Building2 size={24} strokeWidth={1.5} aria-hidden />

@@ -131,9 +131,10 @@ const DEMO_MEMBERS = [
   { email: 'chi.demo@nexture.demo', name: 'Đỗ Thùy Chi (demo)', role: 'VIEWER' as const },
 ];
 
-function logoSvg(initials: string) {
+/** Generated monogram logo (never a real trademark). */
+export function logoSvg(initials: string, fill = '#18794E', line = '#D3F2E2') {
   return new TextEncoder().encode(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><rect width="256" height="256" rx="40" fill="#18794E"/><path d="M40 176c30-40 58-60 88-60s58 20 88 60" fill="none" stroke="#D3F2E2" stroke-width="10" stroke-linecap="round"/><text x="128" y="112" text-anchor="middle" font-family="Arial, sans-serif" font-size="84" font-weight="700" fill="#FFFFFF">${initials}</text></svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><rect width="256" height="256" rx="40" fill="${fill}"/><path d="M40 176c30-40 58-60 88-60s58 20 88 60" fill="none" stroke="${line}" stroke-width="10" stroke-linecap="round"/><text x="128" y="112" text-anchor="middle" font-family="Arial, sans-serif" font-size="${initials.length > 2 ? 64 : 84}" font-weight="700" fill="#FFFFFF">${initials}</text></svg>`,
   );
 }
 

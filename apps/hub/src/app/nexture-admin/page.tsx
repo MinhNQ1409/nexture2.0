@@ -6,6 +6,8 @@ import { adminListOrgs, adminRecentActions } from '@nexture/core';
 import { Badge, Card, PageHeader, tableHead, tableRow } from '@/components/ui';
 import { relativeTime } from '@/lib/activity';
 import { requirePageCtx } from '@/lib/session';
+import Form from 'next/form';
+import { DemoButton } from '@/components/demo-button';
 
 const ATLAS_BADGE = { ON: ['success', 'Đang bật'], OFF: ['neutral', 'Tắt'], HIDDEN: ['error', 'Bị ẩn'] } as const;
 
@@ -20,8 +22,8 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Doanh nghiệp" description={`${r.total} doanh nghiệp trên NexTure. Mở một doanh nghiệp để ẩn nội dung, khóa hoặc xóa.`} />
-      <form className="flex max-w-xl gap-2">
+      <PageHeader title="Doanh nghiệp" description={`${r.total} doanh nghiệp trên NexTure. Mở một doanh nghiệp để ẩn nội dung, khóa hoặc xóa.`} action={<DemoButton set="corps" />} />
+      <Form action="/nexture-admin" className="flex max-w-xl gap-2">
         <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md border border-hairline-strong bg-canvas-white px-3 focus-within:border-primary">
           <Search size={18} strokeWidth={1.5} className="shrink-0 text-ink-mute" aria-hidden />
           <input name="q" defaultValue={q} placeholder="Tìm theo tên hoặc đường dẫn" aria-label="Tìm doanh nghiệp" className="w-full bg-transparent text-body-md outline-none" />
@@ -29,7 +31,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
         <button type="submit" className="rounded-md bg-primary px-5 font-semibold text-on-primary hover:bg-primary-dark">
           Tìm
         </button>
-      </form>
+      </Form>
       <Card className="overflow-x-auto p-0">
         <table className="w-full min-w-[760px]">
           <thead className={tableHead}>
