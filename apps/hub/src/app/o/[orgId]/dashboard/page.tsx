@@ -2,6 +2,7 @@ import { Circle, CircleCheck, ImagePlus } from 'lucide-react';
 import { ROLE_LABELS } from '@nexture/contracts';
 import { getOrg } from '@nexture/core';
 import { Alert, Badge, Card } from '@/components/ui';
+import { DemoButton } from '@/components/demo-button';
 import { requirePageCtx } from '@/lib/session';
 
 const CHECKLIST = [
@@ -12,17 +13,32 @@ const CHECKLIST = [
   ['hasProduct', 'Sản phẩm hoặc dự án'],
 ] as const;
 
-export default async function Dashboard({ params, searchParams }: { params: Promise<{ orgId: string }>; searchParams: Promise<{ created?: string }> }) {
+export default async function Dashboard({ params, searchParams }: { params: Promise<{ orgId: string }>; searchParams: Promise<{ created?: string; demo?: string }> }) {
   const { orgId } = await params;
   const ctx = await requirePageCtx();
   const org = await getOrg(ctx, orgId);
-  const created = (await searchParams).created === '1';
+  const sp = await searchParams;
+  const created = sp.created === '1';
+  const demo = sp.demo === '1';
   const done = CHECKLIST.filter(([k]) => org.onboarding[k]).length;
 
   return (
     // standard-content
     <div className="mx-auto flex w-full max-w-standard flex-col gap-4">
       {created && <Alert tone="success">Đã tạo Culture Hub cho {org.name}.</Alert>}
+      {demo && (
+        <Alert tone="success">
+          Đã tạo doanh nghiệp demo với đủ sự kiện ở mọi trạng thái, thành viên, giá trị văn hóa và hồ sơ đang hiển thị trên Culture Atlas.
+          {org.atlasUrl && (
+            <>
+              {' '}
+              <a href={org.atlasUrl} target="_blank" rel="noopener" className="underline">
+                Xem trên Atlas
+              </a>
+            </>
+          )}
+        </Alert>
+      )}
 
       <section className="rounded-xl border border-hairline bg-canvas-white p-8 shadow-card">
         <div className="flex flex-wrap items-center gap-3">
@@ -55,6 +71,14 @@ export default async function Dashboard({ params, searchParams }: { params: Prom
               );
             })}
           </ul>
+        </Card>
+
+        <Card className="self-start lg:col-span-4">
+          <h2 className="text-heading-md">Xem thử với dữ liệu mẫu</h2>
+          <p className="mt-2 text-body-md text-ink-mute">Tạo một doanh nghiệp demo có sẵn sự kiện, thành viên và hồ sơ trên Culture Atlas để trải nghiệm mọi tính năng.</p>
+          <div className="mt-4">
+            <DemoButton />
+          </div>
         </Card>
 
         {!org.logoMediaId && (

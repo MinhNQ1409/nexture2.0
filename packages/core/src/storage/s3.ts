@@ -27,6 +27,10 @@ export class S3Storage implements Storage {
     return { url, headers: { 'Content-Type': mimeType } };
   }
 
+  async putPrivate(key: string, body: Uint8Array, mimeType: string) {
+    await this.client.send(new PutObjectCommand({ Bucket: this.cfg.privateBucket, Key: key, Body: body, ContentType: mimeType }));
+  }
+
   presignGet(key: string) {
     return getSignedUrl(this.client, new GetObjectCommand({ Bucket: this.cfg.privateBucket, Key: key }), { expiresIn: 3600 });
   }

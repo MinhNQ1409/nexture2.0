@@ -16,3 +16,4 @@ export * from './orgs';
 export * from './members';
 export * from './invites';
 export * from './me';
+export * from './demo';

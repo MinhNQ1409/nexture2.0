@@ -1,7 +1,7 @@
 // Local-disk storage for development and tests. Files live under `root/private` and `root/public`;
 // the Hub serves them at /api/files/... and checks the HMAC signature on private PUT/GET.
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { copyFile, mkdir, readFile, rm, stat } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Storage } from './index';
 
@@ -36,6 +36,12 @@ export class LocalStorage implements Storage {
 
   async presignPut(key: string, mimeType: string) {
     return { url: this.signed('PUT', key, 900), headers: { 'Content-Type': mimeType } };
+  }
+
+  async putPrivate(key: string, body: Uint8Array) {
+    const to = this.filePath('private', key);
+    await mkdir(path.dirname(to), { recursive: true });
+    await writeFile(to, body);
   }
 
   async presignGet(key: string) {

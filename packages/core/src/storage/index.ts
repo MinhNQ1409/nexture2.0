@@ -3,6 +3,8 @@
 export interface Storage {
   /** Presigned PUT the browser uploads to directly (15 minutes). */
   presignPut(key: string, mimeType: string): Promise<{ url: string; headers: Record<string, string> }>;
+  /** Server-side write of a private object (demo data, generated files). */
+  putPrivate(key: string, body: Uint8Array, mimeType: string): Promise<void>;
   /** Presigned GET for private files (60 minutes). */
   presignGet(key: string): Promise<string>;
   /** Size of an uploaded private object, or null when missing. */
