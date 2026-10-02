@@ -8,14 +8,16 @@ let cached: Storage | undefined;
 export function storage(): Storage {
   if (cached) return cached;
   const env = process.env;
-  cached = env.S3_ENDPOINT
+  // R2: endpoint derives from the account id; public files are served through the Hub unless a public domain is set.
+  const endpoint = env.S3_ENDPOINT || (env.R2_ACCOUNT_ID ? `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : '');
+  cached = endpoint
     ? new S3Storage({
-        endpoint: env.S3_ENDPOINT,
+        endpoint,
         accessKeyId: env.R2_ACCESS_KEY_ID ?? '',
         secretAccessKey: env.R2_SECRET_ACCESS_KEY ?? '',
         privateBucket: env.R2_PRIVATE_BUCKET ?? 'nexture-private',
         publicBucket: env.R2_PUBLIC_BUCKET ?? 'nexture-public',
-        publicBaseUrl: env.R2_PUBLIC_BASE_URL ?? '',
+        publicBaseUrl: env.R2_PUBLIC_BASE_URL || `${env.HUB_BASE_URL ?? ''}/api/files/public`,
       })
     : localStorage();
   return cached;

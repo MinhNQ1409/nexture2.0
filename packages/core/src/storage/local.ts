@@ -1,7 +1,7 @@
 // Local-disk storage for development and tests. Files live under `root/private` and `root/public`;
 // the Hub serves them at /api/files/... and checks the HMAC signature on private PUT/GET.
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { copyFile, mkdir, rm, stat } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { Storage } from './index';
 
@@ -58,6 +58,14 @@ export class LocalStorage implements Storage {
 
   async deletePublic(publicKey: string) {
     await rm(this.filePath('public', publicKey), { force: true });
+  }
+
+  async readPublic(publicKey: string) {
+    try {
+      return await readFile(this.filePath('public', publicKey));
+    } catch {
+      return null;
+    }
   }
 
   publicUrl(publicKey: string) {

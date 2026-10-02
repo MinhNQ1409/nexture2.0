@@ -57,6 +57,16 @@ export class S3Storage implements Storage {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.cfg.publicBucket, Key: publicKey }));
   }
 
+  async readPublic(publicKey: string) {
+    try {
+      const r = await this.client.send(new GetObjectCommand({ Bucket: this.cfg.publicBucket, Key: publicKey }));
+      return r.Body ? await r.Body.transformToByteArray() : null;
+    } catch (e) {
+      if ((e as { name?: string }).name === 'NoSuchKey') return null;
+      throw e;
+    }
+  }
+
   publicUrl(publicKey: string) {
     return `${this.cfg.publicBaseUrl.replace(/\/$/, '')}/${publicKey}`;
   }
