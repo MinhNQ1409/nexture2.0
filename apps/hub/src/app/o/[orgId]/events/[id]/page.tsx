@@ -11,5 +11,5 @@ export default async function EventPage({ params }: { params: Promise<{ orgId: s
     if (e instanceof AppError) notFound();
     throw e;
   });
-  return <EventEditor orgId={orgId} isAdmin={org.myRole === 'ADMIN'} event={JSON.parse(JSON.stringify(event))} />;
+  return <EventEditor key={event.id} orgId={orgId} isAdmin={org.myRole === 'ADMIN'} event={JSON.parse(JSON.stringify(event))} />;
 }

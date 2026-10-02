@@ -9,12 +9,14 @@ export function FuzzyDateInput({ value, onChange, id }: { value: FuzzyValue; onC
   const y = value.date.slice(0, 4);
   const ym = value.date.slice(0, 7);
   return (
-    <div className="flex gap-2">
-      <Select className="w-28 shrink-0" aria-label="Độ chính xác" value={value.precision} onChange={(e) => onChange({ ...value, precision: e.target.value as DatePrecision })}>
-        <option value="YEAR">Năm</option>
-        <option value="MONTH">Tháng</option>
-        <option value="DAY">Ngày</option>
-      </Select>
+    <div className="flex min-w-0 gap-2">
+      <div className="w-28 shrink-0">
+        <Select aria-label="Độ chính xác" value={value.precision} onChange={(e) => onChange({ ...value, precision: e.target.value as DatePrecision })}>
+          <option value="YEAR">Năm</option>
+          <option value="MONTH">Tháng</option>
+          <option value="DAY">Ngày</option>
+        </Select>
+      </div>
       {value.precision === 'YEAR' && (
         <Input id={id} type="number" min={1800} max={2100} placeholder="2015" value={y === '0000' ? '' : y} onChange={(e) => onChange({ ...value, date: `${e.target.value.padStart(4, '0')}-01-01` })} />
       )}
@@ -23,3 +25,19 @@ export function FuzzyDateInput({ value, onChange, id }: { value: FuzzyValue; onC
     </div>
   );
 }
+
+/** Optional fuzzy date: a checkbox shows the input; unchecked means no date. */
+export function OptionalDate({ label, on, value, onToggle, onChange, error }: { label: string; on: boolean; value: FuzzyValue; onToggle: (on: boolean) => void; onChange: (v: FuzzyValue) => void; error?: string }) {
+  return (
+    <div>
+      <label className="flex min-h-6 items-center gap-2 pb-1 text-body-md font-semibold">
+        <input type="checkbox" className="size-4 accent-primary" checked={on} onChange={(e) => onToggle(e.target.checked)} />
+        {label}
+      </label>
+      {on && <FuzzyDateInput value={value} onChange={onChange} />}
+      {error && <span className="block pt-1 text-caption text-error">{error}</span>}
+    </div>
+  );
+}
+
+export const thisYear = (): FuzzyValue => ({ date: `${new Date().getFullYear()}-01-01`, precision: 'YEAR' });

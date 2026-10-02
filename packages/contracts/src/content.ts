@@ -8,6 +8,12 @@ export type ContentStatus = (typeof CONTENT_STATUSES)[number];
 export type Visibility = (typeof VISIBILITIES)[number];
 export type DatePrecision = (typeof DATE_PRECISIONS)[number];
 export type EventType = (typeof EVENT_TYPES)[number];
+export const STORY_TYPES = ['COMPANY', 'FOUNDER', 'CULTURE', 'PEOPLE', 'PRODUCT'] as const;
+export type StoryType = (typeof STORY_TYPES)[number];
+export const PP_KINDS = ['PRODUCT', 'PROJECT'] as const;
+export type PpKind = (typeof PP_KINDS)[number];
+export const PP_STATUSES = ['PLANNED', 'ACTIVE', 'COMPLETED', 'DISCONTINUED'] as const;
+export type PpStatus = (typeof PP_STATUSES)[number];
 
 // Labels: docs/spec/06-hub-man-hinh.md §1.
 export const STATUS_LABELS: Record<ContentStatus, string> = { DRAFT: 'Nháp', PENDING_REVIEW: 'Chờ duyệt', VERIFIED: 'Đã xác minh' };
@@ -22,6 +28,15 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   PARTNERSHIP: 'Hợp tác',
   OTHER: 'Khác',
 };
+export const STORY_TYPE_LABELS: Record<StoryType, string> = {
+  COMPANY: 'Câu chuyện doanh nghiệp',
+  FOUNDER: 'Câu chuyện người sáng lập',
+  CULTURE: 'Câu chuyện văn hóa',
+  PEOPLE: 'Câu chuyện con người',
+  PRODUCT: 'Câu chuyện sản phẩm',
+};
+export const PP_KIND_LABELS: Record<PpKind, string> = { PRODUCT: 'Sản phẩm', PROJECT: 'Dự án' };
+export const PP_STATUS_LABELS: Record<PpStatus, string> = { PLANNED: 'Dự kiến', ACTIVE: 'Đang hoạt động', COMPLETED: 'Đã hoàn thành', DISCONTINUED: 'Đã ngừng' };
 export const PUBLIC_STATE_LABELS = {
   NOT_PUBLIC: '',
   LIVE: 'Đang hiển thị trên Atlas',
@@ -78,6 +93,62 @@ export type EventInput = z.input<typeof eventInput>;
 
 export const eventPatch = z.object({ version: z.number().int(), ...eventFields }).partial().required({ version: true });
 export type EventPatch = z.input<typeof eventPatch>;
+
+const createExtras = {
+  status: z.enum(['DRAFT', 'VERIFIED']).default('DRAFT'),
+  visibility: z.enum(['PRIVATE', 'INTERNAL']).default('INTERNAL'),
+};
+
+export const storyFields = {
+  storyType: z.enum(STORY_TYPES),
+  titleVi: z.string().trim().min(1).max(200),
+  titleEn: nullableText(200),
+  summaryVi: nullableText(500),
+  summaryEn: nullableText(500),
+  contentVi: z.string().max(100000).nullish(),
+  contentEn: z.string().nullish(),
+  storyDate: fuzzyDate.nullish(),
+  coverMediaId: z.uuid().nullish(),
+  internalNotes: nullableText(5000),
+};
+export const storyInput = z.object({ ...storyFields, storyType: storyFields.storyType.default('CULTURE'), ...createExtras });
+export type StoryInput = z.input<typeof storyInput>;
+export const storyPatch = z.object({ version: z.number().int(), ...storyFields }).partial().required({ version: true });
+
+export const personFields = {
+  fullName: z.string().trim().min(1).max(150),
+  roleTitleVi: nullableText(150),
+  roleTitleEn: nullableText(150),
+  isFounder: z.boolean(),
+  joinedDate: fuzzyDate.nullish(),
+  leftDate: fuzzyDate.nullish(),
+  bioVi: z.string().max(50000).nullish(),
+  bioEn: z.string().nullish(),
+  contributionsVi: z.string().max(20000).nullish(),
+  contributionsEn: z.string().nullish(),
+  avatarMediaId: z.uuid().nullish(),
+  internalNotes: nullableText(5000),
+};
+export const personInput = z.object({ ...personFields, isFounder: personFields.isFounder.default(false), ...createExtras });
+export type PersonInput = z.input<typeof personInput>;
+export const personPatch = z.object({ version: z.number().int(), ...personFields }).partial().required({ version: true });
+
+export const productFields = {
+  kind: z.enum(PP_KINDS),
+  titleVi: z.string().trim().min(1).max(200),
+  titleEn: nullableText(200),
+  summaryVi: nullableText(500),
+  summaryEn: nullableText(500),
+  descriptionVi: z.string().max(100000).nullish(),
+  descriptionEn: z.string().nullish(),
+  launchDate: fuzzyDate.nullish(),
+  ppStatus: z.enum(PP_STATUSES),
+  coverMediaId: z.uuid().nullish(),
+  internalNotes: nullableText(5000),
+};
+export const productInput = z.object({ ...productFields, ppStatus: productFields.ppStatus.default('ACTIVE'), ...createExtras });
+export type ProductInput = z.input<typeof productInput>;
+export const productPatch = z.object({ version: z.number().int(), ...productFields }).partial().required({ version: true });
 
 export const versionOnly = z.object({ version: z.number().int() });
 export const returnInput = z.object({ version: z.number().int(), note: z.string().trim().min(1).max(1000) });

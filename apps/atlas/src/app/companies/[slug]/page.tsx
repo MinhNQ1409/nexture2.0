@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { Building2, CalendarDays, ExternalLink, MapPin } from 'lucide-react';
+import { ArrowRight, Building2, CalendarDays, ExternalLink, MapPin, UserRound } from 'lucide-react';
 import Link from 'next/link';
-import { getCompany, getCompanyEvents } from '@/lib/queries';
+import { getCompany, getCompanyEntities, type EntityCard } from '@/lib/queries';
+import { RelatedCard } from '../../entity-view';
 import { eventDate } from '@/lib/dates';
 
 // Rendered per request so builds never need the database; data itself is cached by tag in lib/queries.ts.
@@ -16,7 +17,23 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function CompanyPage({ params }: { params: Promise<{ slug: string }> }) {
   const c = await getCompany((await params).slug);
   if (!c) notFound();
-  const events = await getCompanyEvents(c.orgId, c.slug);
+  const all = await getCompanyEntities(c.orgId, c.slug);
+  const of = (...types: string[]) => all.filter((e) => types.includes(e.entityType));
+  const events = of('EVENT');
+  const featured = c.featuredStorySlug ? all.find((e) => e.entityType === 'STORY' && e.slug === c.featuredStorySlug) : undefined;
+  const stories = of('STORY')
+    .filter((e) => e !== featured)
+    .sort((x, y) => (y.sortDate ?? '').localeCompare(x.sortDate ?? ''));
+  // 07 §3: founders first, then by name.
+  const people = of('PERSON').sort((x, y) => Number(y.extra.isFounder === true) - Number(x.extra.isFounder === true) || x.title.localeCompare(y.title, 'vi'));
+  const products = of('PRODUCT', 'PROJECT').sort((x, y) => (y.sortDate ?? '').localeCompare(x.sortDate ?? ''));
+  const nav = [
+    (featured || stories.length > 0) && ['cau-chuyen', 'Câu chuyện'],
+    events.length > 0 && ['dong-thoi-gian', 'Dòng thời gian'],
+    people.length > 0 && ['con-nguoi', 'Con người'],
+    products.length > 0 && ['san-pham', 'Sản phẩm & Dự án'],
+    c.cultureValues.length > 0 && ['gia-tri', 'Giá trị'],
+  ].filter(Boolean) as [string, string][];
   const facts = [
     c.industryName && { icon: Building2, text: c.industryName },
     c.foundedYear && { icon: CalendarDays, text: `Thành lập ${c.foundedYear}` },
@@ -57,8 +74,30 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
 
       {c.shortDesc && <p className="max-w-reading text-body-lg">{c.shortDesc}</p>}
 
+      {nav.length > 1 && (
+        <nav aria-label="Mục trong hồ sơ" className="sticky top-0 z-10 -mx-4 flex gap-1 overflow-x-auto border-b border-hairline bg-canvas px-4 py-2">
+          {nav.map(([id, label]) => (
+            <a key={id} href={`#${id}`} className="whitespace-nowrap rounded-md px-3 py-1.5 text-body-md text-ink-mute hover:bg-canvas-section hover:text-ink">
+              {label}
+            </a>
+          ))}
+        </nav>
+      )}
+
+      {featured && (
+        <section id="cau-chuyen" className="flex scroll-mt-16 flex-col gap-3 rounded-xl border-l-4 border-primary bg-canvas-white p-6 shadow-card md:p-8">
+          <p className="text-body-md font-medium text-primary">Câu chuyện doanh nghiệp</p>
+          <h2 className="text-heading-lg">{featured.title}</h2>
+          {featured.summary && <p className="max-w-reading text-body-lg text-ink-mute">{featured.summary}</p>}
+          <Link href={`/stories/${featured.slug}`} className="inline-flex w-fit items-center gap-2 text-body-md font-semibold text-primary hover:text-primary-dark">
+            Đọc câu chuyện
+            <ArrowRight size={16} strokeWidth={1.5} aria-hidden />
+          </Link>
+        </section>
+      )}
+
       {c.cultureValues.length > 0 && (
-        <section className="flex flex-col gap-4">
+        <section id="gia-tri" className="flex scroll-mt-16 flex-col gap-4">
           <h2 className="text-heading-lg">Giá trị cốt lõi</h2>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {c.cultureValues.map((v) => (
@@ -71,7 +110,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
         </section>
       )}
       {events.length > 0 && (
-        <section className="flex flex-col gap-4">
+        <section id="dong-thoi-gian" className="flex scroll-mt-16 flex-col gap-4">
           <h2 className="text-heading-lg">Dòng thời gian</h2>
           <ol className="flex flex-col gap-4 border-l-2 border-hairline pl-6">
             {events.map((e) => (
@@ -85,6 +124,43 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
           </ol>
         </section>
       )}
+
+      {people.length > 0 && (
+        <section id="con-nguoi" className="flex scroll-mt-16 flex-col gap-4">
+          <h2 className="text-heading-lg">Người sáng lập và con người</h2>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {people.map((p) => (
+              <li key={p.id}>
+                <Link href={`/people/${p.slug}`} className="flex h-full items-center gap-4 rounded-lg border border-hairline bg-canvas-white p-5 shadow-card hover:bg-canvas-section">
+                  <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-primary-light text-primary">
+                    <UserRound size={24} strokeWidth={1.5} aria-hidden />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-display text-heading-sm text-ink">{p.title}</span>
+                    <span className="block text-body-md text-ink-mute">{[p.extra.isFounder === true && 'Người sáng lập', p.subtitle].filter(Boolean).join(' · ')}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {products.length > 0 && <CardGrid id="san-pham" title="Sản phẩm và dự án" items={products} />}
+      {stories.length > 0 && <CardGrid id={featured ? 'cau-chuyen-van-hoa' : 'cau-chuyen'} title="Câu chuyện văn hóa" items={stories} />}
     </article>
+  );
+}
+
+function CardGrid({ id, title, items }: { id: string; title: string; items: EntityCard[] }) {
+  return (
+    <section id={id} className="flex scroll-mt-16 flex-col gap-4">
+      <h2 className="text-heading-lg">{title}</h2>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((e) => (
+          <RelatedCard key={e.id} e={e} />
+        ))}
+      </div>
+    </section>
   );
 }

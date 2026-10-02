@@ -13,10 +13,10 @@ const SECTIONS: { label: string; items: Item[] }[] = [
     items: [
       { href: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard, ready: true },
       { href: 'timeline', label: 'Culture Timeline', icon: CalendarClock },
-      { href: 'stories', label: 'Câu chuyện', icon: BookOpen },
+      { href: 'stories', label: 'Câu chuyện', icon: BookOpen, ready: true },
       { href: 'events', label: 'Sự kiện', icon: Flag, ready: true },
-      { href: 'people', label: 'Con người', icon: Users },
-      { href: 'products', label: 'Sản phẩm & Dự án', icon: Package },
+      { href: 'people', label: 'Con người', icon: Users, ready: true },
+      { href: 'products', label: 'Sản phẩm & Dự án', icon: Package, ready: true },
       { href: 'values', label: 'Giá trị văn hóa', icon: Gem },
       { href: 'library', label: 'Thư viện tư liệu', icon: Images },
     ],

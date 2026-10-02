@@ -24,3 +24,9 @@ export const PUBLIC_ENTITY_COLUMNS = [
 ] as const;
 
 export const PUBLIC_EVENT_EXTRA_KEYS = ['values', 'eventType'] as const;
+export const PUBLIC_EXTRA_KEYS = {
+  STORY: ['values'],
+  EVENT: PUBLIC_EVENT_EXTRA_KEYS,
+  PERSON: ['isFounder', 'contributionsHtml'],
+  PRODUCT_PROJECT: ['status'],
+} as const;

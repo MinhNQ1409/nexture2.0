@@ -3,20 +3,33 @@
 import { and, asc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { Tx } from '@nexture/db';
 import { atlasTables as a, coreTables as t } from '@nexture/db';
-import { EMPLOYEE_SIZES, EVENT_TYPE_LABELS, industryName, provinceName } from '@nexture/contracts';
+import { EMPLOYEE_SIZES, EVENT_TYPE_LABELS, PP_KIND_LABELS, STORY_TYPE_LABELS, industryName, provinceName } from '@nexture/contracts';
 import type { Storage } from '../storage';
 import { makeSlug } from '../slug';
 import { isOrgPublic, isPublic } from './rules';
 
-export type PublicEntityType = 'EVENT';
+export type PublicEntityType = 'STORY' | 'EVENT' | 'PERSON' | 'PRODUCT_PROJECT';
+/** atlas.entities.entity_type: products and projects are separate on Atlas (08 §3). */
+export type AtlasEntityType = 'STORY' | 'EVENT' | 'PERSON' | 'PRODUCT' | 'PROJECT';
 export type SyncResult = { tags: Set<string>; deletePublicKeys: Set<string> };
 export const emptySync = (): SyncResult => ({ tags: new Set(), deletePublicKeys: new Set() });
 
 type OrgRow = typeof t.organizations.$inferSelect;
+type StoryRow = typeof t.stories.$inferSelect;
 type EventRow = typeof t.events.$inferSelect;
+type PersonRow = typeof t.people.$inferSelect;
+type ProductRow = typeof t.productsProjects.$inferSelect;
+type AnyRow = StoryRow | EventRow | PersonRow | ProductRow;
+/** Shared workflow columns, typed through the events table. */
+type Tbl = typeof t.events;
 
-export const ATLAS_PREFIX: Record<PublicEntityType, string> = { EVENT: '/events' };
-export const atlasPath = (type: PublicEntityType, slug: string) => `${ATLAS_PREFIX[type]}/${slug}`;
+const TABLES: Record<PublicEntityType, unknown> = { STORY: t.stories, EVENT: t.events, PERSON: t.people, PRODUCT_PROJECT: t.productsProjects };
+const tbl = (type: PublicEntityType) => TABLES[type] as Tbl;
+
+export const ATLAS_PREFIX: Record<AtlasEntityType, string> = { STORY: '/stories', EVENT: '/events', PERSON: '/people', PRODUCT: '/products', PROJECT: '/projects' };
+export const atlasPath = (type: AtlasEntityType, slug: string) => `${ATLAS_PREFIX[type]}/${slug}`;
+export const atlasTypeOf = (type: PublicEntityType, row: { kind?: 'PRODUCT' | 'PROJECT' }): AtlasEntityType =>
+  type === 'PRODUCT_PROJECT' ? (row.kind ?? 'PRODUCT') : type;
 
 async function loadOrg(tx: Tx, orgId: string) {
   const [org] = await tx.select().from(t.organizations).where(eq(t.organizations.id, orgId));
@@ -32,7 +45,7 @@ async function tombstone(tx: Tx, path: string) {
 }
 
 /** Public names of culture values linked to an entity (08 §6). */
-async function linkedValueNames(tx: Tx, entityType: 'EVENT' | 'STORY', id: string) {
+async function linkedValueNames(tx: Tx, entityType: 'EVENT' | 'STORY', id: string): Promise<string[]> {
   const rels = await tx
     .select({ s: t.relationships.sourceId, st: t.relationships.sourceType, tg: t.relationships.targetId })
     .from(t.relationships)
@@ -52,7 +65,7 @@ async function linkedValueNames(tx: Tx, entityType: 'EVENT' | 'STORY', id: strin
   return rows.map((r) => r.name);
 }
 
-async function publicSources(tx: Tx, entityType: 'EVENT', id: string) {
+async function publicSources(tx: Tx, entityType: PublicEntityType, id: string) {
   const rows = await tx
     .select({ title: t.entitySources.title, url: t.entitySources.url, note: t.entitySources.note })
     .from(t.entitySources)
@@ -61,60 +74,134 @@ async function publicSources(tx: Tx, entityType: 'EVENT', id: string) {
   return rows.map((r) => ({ title: r.title, url: r.url ?? null, note: r.note ?? null }));
 }
 
-async function uniquePublicSlug(tx: Tx, e: EventRow, org: OrgRow) {
-  const taken = async (s: string) => (await tx.select({ id: t.events.id }).from(t.events).where(eq(t.events.publicSlug, s))).length > 0;
-  const base = makeSlug(e.titleVi);
+async function uniquePublicSlug(tx: Tx, type: PublicEntityType, title: string, org: OrgRow) {
+  const x = tbl(type);
+  const taken = async (s: string) => (await tx.select({ id: x.id }).from(x).where(eq(x.publicSlug, s))).length > 0;
+  const base = makeSlug(title);
   if (!(await taken(base))) return base;
-  const withOrg = makeSlug(`${e.titleVi} ${org.slug}`);
+  const withOrg = makeSlug(`${title} ${org.slug}`);
   if (!(await taken(withOrg))) return withOrg;
   for (let i = 2; ; i++) if (!(await taken(`${withOrg}-${i}`))) return `${withOrg}-${i}`;
 }
 
-/** 08 §2 syncEntity for an Event. */
-async function syncEvent(tx: Tx, storage: Storage | undefined, id: string, out: SyncResult) {
-  const [e] = await tx.select().from(t.events).where(eq(t.events.id, id));
+type Projection = {
+  title: string;
+  subtitle: string | null;
+  summary: string | null;
+  bodyHtml: string | null;
+  extra: Record<string, unknown>;
+  sortDate: string | null;
+  datePrecision: string | null;
+  endDate: string | null;
+  endDatePrecision: string | null;
+};
+
+/** 08 §3 whitelist, per type. */
+async function project(tx: Tx, type: PublicEntityType, row: AnyRow): Promise<Projection> {
+  switch (type) {
+    case 'STORY': {
+      const s = row as StoryRow;
+      return {
+        title: s.titleVi,
+        subtitle: STORY_TYPE_LABELS[s.storyType],
+        summary: s.summaryVi,
+        bodyHtml: s.contentVi,
+        extra: { values: await linkedValueNames(tx, 'STORY', s.id) },
+        sortDate: s.storyDate,
+        datePrecision: s.storyDatePrecision,
+        endDate: null,
+        endDatePrecision: null,
+      };
+    }
+    case 'EVENT': {
+      const e = row as EventRow;
+      return {
+        title: e.titleVi,
+        subtitle: EVENT_TYPE_LABELS[e.eventType],
+        summary: e.summaryVi,
+        bodyHtml: e.contentVi,
+        extra: { values: await linkedValueNames(tx, 'EVENT', e.id), eventType: e.eventType },
+        sortDate: e.startDate,
+        datePrecision: e.startDatePrecision,
+        endDate: e.endDate,
+        endDatePrecision: e.endDatePrecision,
+      };
+    }
+    case 'PERSON': {
+      const p = row as PersonRow;
+      return {
+        title: p.fullName,
+        subtitle: p.roleTitleVi,
+        summary: null,
+        bodyHtml: p.bioVi,
+        extra: { isFounder: p.isFounder, contributionsHtml: p.contributionsVi },
+        sortDate: p.joinedDate,
+        datePrecision: p.joinedDatePrecision,
+        endDate: p.leftDate,
+        endDatePrecision: p.leftDatePrecision,
+      };
+    }
+    case 'PRODUCT_PROJECT': {
+      const p = row as ProductRow;
+      return {
+        title: p.titleVi,
+        subtitle: PP_KIND_LABELS[p.kind],
+        summary: p.summaryVi,
+        bodyHtml: p.descriptionVi,
+        extra: { status: p.ppStatus },
+        sortDate: p.launchDate,
+        datePrecision: p.launchDatePrecision,
+        endDate: null,
+        endDatePrecision: null,
+      };
+    }
+  }
+}
+
+/** 08 §2 syncEntity. */
+async function syncEntity(tx: Tx, storage: Storage | undefined, type: PublicEntityType, id: string, out: SyncResult) {
+  const x = tbl(type);
+  const [e] = (await tx.select().from(x).where(eq(x.id, id))) as AnyRow[];
   if (!e) return;
   const org = await loadOrg(tx, e.organizationId);
-  const [existing] = await tx.select({ id: a.entities.id, slug: a.entities.slug, publishedAt: a.entities.publishedAt }).from(a.entities).where(eq(a.entities.id, id));
+  const [existing] = await tx
+    .select({ id: a.entities.id, type: a.entities.entityType, slug: a.entities.slug, publishedAt: a.entities.publishedAt })
+    .from(a.entities)
+    .where(eq(a.entities.id, id));
+  const atlasType = atlasTypeOf(type, e as { kind?: 'PRODUCT' | 'PROJECT' });
 
   if (isPublic(e, org)) {
     await rebuildCompany(tx, storage, org, out);
+    const p = await project(tx, type, e);
     let slug = e.publicSlug;
     if (!slug) {
-      slug = await uniquePublicSlug(tx, e, org);
-      await tx.update(t.events).set({ publicSlug: slug }).where(eq(t.events.id, id));
+      slug = await uniquePublicSlug(tx, type, p.title, org);
+      await tx.update(x).set({ publicSlug: slug }).where(eq(x.id, id));
     }
-    const path = atlasPath('EVENT', slug);
-    const subtitle = EVENT_TYPE_LABELS[e.eventType];
+    const path = atlasPath(atlasType, slug);
     const row = {
       id,
-      entityType: 'EVENT' as const,
+      entityType: atlasType,
       slug,
       orgId: org.id,
       companySlug: org.slug,
       companyName: org.name,
-      title: e.titleVi,
-      subtitle,
-      summary: e.summaryVi,
-      bodyHtml: e.contentVi,
-      extra: { values: await linkedValueNames(tx, 'EVENT', id), eventType: e.eventType },
-      sortDate: e.startDate,
-      datePrecision: e.startDatePrecision,
-      endDate: e.endDate,
-      endDatePrecision: e.endDatePrecision,
+      ...p,
       coverUrl: null, // cover media sync arrives with the media library step
       coverAlt: null,
-      sources: await publicSources(tx, 'EVENT', id),
+      sources: await publicSources(tx, type, id),
       publishedAt: existing?.publishedAt ?? new Date(),
       updatedAt: new Date(),
-      searchText: sql`atlas.f_search_norm(${[e.titleVi, subtitle, e.summaryVi ?? '', org.name].join(' ')})`,
+      searchText: sql`atlas.f_search_norm(${[p.title, p.subtitle ?? '', p.summary ?? '', org.name].join(' ')})`,
     };
     await tx.insert(a.entities).values(row).onConflictDoUpdate({ target: a.entities.id, set: { ...row, id: undefined } });
     await tx.delete(a.tombstones).where(eq(a.tombstones.path, path));
     out.tags.add(`entity:${path}`);
+    // Product <-> project switch: the old path redirects (308), it is not a tombstone (08 §5).
+    if (existing && existing.type !== atlasType) out.tags.add(`entity:${atlasPath(existing.type as AtlasEntityType, existing.slug)}`);
   } else if (existing) {
     await tx.delete(a.entities).where(eq(a.entities.id, id));
-    const path = atlasPath('EVENT', existing.slug);
+    const path = atlasPath(existing.type as AtlasEntityType, existing.slug);
     await tombstone(tx, path);
     out.tags.add(`entity:${path}`);
   } else {
@@ -184,7 +271,9 @@ async function rebuildCompany(tx: Tx, storage: Storage | undefined, org: OrgRow,
     provinceName: org.provinceCode ? provinceName(org.provinceCode) : null,
     website: org.website,
     shortDesc: org.shortDescVi,
-    featuredStorySlug: null, // stories arrive in a later step
+    featuredStorySlug: org.featuredStoryId
+      ? ((await tx.select({ slug: a.entities.slug }).from(a.entities).where(and(eq(a.entities.id, org.featuredStoryId), eq(a.entities.entityType, 'STORY'))))[0]?.slug ?? null)
+      : null,
     cultureValues: values,
     publicEntityCount: n,
     firstPublishedAt: org.atlasFirstEnabledAt ?? new Date(),
@@ -203,7 +292,7 @@ async function syncOrg(tx: Tx, storage: Storage | undefined, orgId: string, out:
   if (!isOrgPublic(org)) {
     const [company] = await tx.select({ orgId: a.companies.orgId }).from(a.companies).where(eq(a.companies.orgId, orgId));
     const rows = await tx.select({ type: a.entities.entityType, slug: a.entities.slug }).from(a.entities).where(eq(a.entities.orgId, orgId));
-    for (const r of rows) await tombstone(tx, `${ATLAS_PREFIX[r.type as PublicEntityType]}/${r.slug}`);
+    for (const r of rows) await tombstone(tx, atlasPath(r.type as AtlasEntityType, r.slug));
     if (company) await tombstone(tx, `/companies/${org.slug}`);
     await tx.delete(a.entities).where(eq(a.entities.orgId, orgId));
     await tx.delete(a.companies).where(eq(a.companies.orgId, orgId));
@@ -217,14 +306,17 @@ async function syncOrg(tx: Tx, storage: Storage | undefined, orgId: string, out:
     return;
   }
   await rebuildCompany(tx, storage, org, out);
-  const events = await tx.select({ id: t.events.id }).from(t.events).where(eq(t.events.organizationId, orgId));
-  for (const e of events) await syncEvent(tx, storage, e.id, out);
+  for (const type of Object.keys(TABLES) as PublicEntityType[]) {
+    const x = tbl(type);
+    const rows = await tx.select({ id: x.id }).from(x).where(eq(x.organizationId, orgId));
+    for (const r of rows) await syncEntity(tx, storage, type, r.id, out);
+  }
 }
 
 export type SyncScope = { kind: 'entity'; type: PublicEntityType; id: string } | { kind: 'org'; orgId: string };
 
 export async function syncPublic(tx: Tx, storage: Storage | undefined, scope: SyncScope, out: SyncResult = emptySync()): Promise<SyncResult> {
   if (scope.kind === 'org') await syncOrg(tx, storage, scope.orgId, out);
-  else await syncEvent(tx, storage, scope.id, out);
+  else await syncEntity(tx, storage, scope.type, scope.id, out);
   return out;
 }
