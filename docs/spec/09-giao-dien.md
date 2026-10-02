@@ -1,103 +1,73 @@
 # 09. Giao diện: design token và quy tắc component
 
-**Trạng thái:** đang dùng giá trị tạm. Khi nhận bộ nhận diện (màu, font, logo) của NexTure, **chỉ** cập nhật các giá trị ở §2–§4 và file `packages/config/tokens.css`; không sửa component.
+**Trạng thái:** đã chốt bộ nhận diện (2026-10-02). Nguồn gốc là `docs/design/DESIGN.md` do người dùng cung cấp (bản chung ở `/mnt/project-files/nexture/design/DESIGN.md`). Khi DESIGN.md và file này khác nhau về màu, chữ, bo góc, bóng, trạng thái tương tác thì **DESIGN.md thắng**. File này chỉ ghi những gì riêng của NexTure: ánh xạ trạng thái nghiệp vụ sang badge, và chỗ Atlas khác Hub.
+
+Token được khai báo một lần trong `packages/config/tokens.css` (Tailwind v4 `@theme`), tên token trùng tên trong DESIGN.md (`primary`, `ink`, `canvas`, `hairline`, `success`/`success-bg`, ...).
 
 ## 1. Nguyên tắc
 
-1. Mọi màu, font, cỡ chữ, bo góc, bóng đổ trong code PHẢI lấy từ token (CSS variable khai báo qua `@theme` của Tailwind v4). KHÔNG ĐƯỢC viết mã màu hex/rgb trực tiếp trong component. ESLint rule (`no-restricted-syntax` cho chuỗi `#[0-9a-f]{3,8}` trong `.tsx`) chặn việc này.
-2. Hub và Atlas dùng **chung bộ token**. Atlas được phép dùng cỡ chữ display và khoảng trắng rộng hơn (token riêng `display-*`), Hub ưu tiên mật độ thông tin.
-3. Chế độ tối: **không làm** trong MVP. Token vẫn đặt tên theo vai trò (không theo màu) để thêm sau.
-4. Font PHẢI hỗ trợ đầy đủ tiếng Việt (kiểm bằng chuỗi mẫu §6).
+1. Mọi màu, font, cỡ chữ, bo góc, bóng đổ trong component PHẢI lấy từ token. Bảng màu mặc định của Tailwind đã bị xóa (`--color-*: initial`), nên class như `bg-blue-500` không tồn tại. Không viết mã hex trong `.tsx`.
+2. Hub và Atlas dùng **chung bộ token**. Hub theo đúng DESIGN.md (app nội bộ, mật độ cao). Atlas là trang công khai nên được dùng cỡ display lớn hơn và khoảng trắng rộng hơn (§4), nhưng vẫn cùng màu, font, bo góc.
+3. Không dùng emoji hay ký tự thay icon (✓, ○, ⚠). Icon: `lucide-react`, nét 1.5, cỡ 16/20/24/32 theo DESIGN.md "Icon Sizes".
+4. Chế độ tối: không làm trong MVP.
 
-## 2. Màu (token theo vai trò)
+## 2. Font
 
-Cột "Giá trị tạm" dùng cho tới khi có bộ nhận diện. Cột "Lấy từ bộ nhận diện" chỉ cách ánh xạ.
+- Tiêu đề, display: **Be Vietnam Pro** 600/700 (`font-display`, mặc định cho `h1–h3`).
+- Thân, nút, bảng, form: **Inter** 400/600 (`font-sans`).
+- Tải bằng `next/font/google` trong `apps/*/src/lib/fonts.ts`, subset `vietnamese` + `latin`, `display: swap`.
+- Class cỡ chữ dùng tên token của DESIGN.md: `text-display-xl`, `text-display-md`, `text-heading-lg`, `text-heading-md`, `text-body-lg`, `text-body-md`, `text-caption`, `text-micro-cap`, `text-button-md`...
+- Số liệu (đếm, ngày, năm) dùng class `tabular`, định dạng `vi-VN`.
 
-| Token | Dùng cho | Giá trị tạm | Lấy từ bộ nhận diện |
-|---|---|---|---|
-| `--color-brand` | Nút chính, link, điểm nhấn | `#1F4E79` | Màu chính |
-| `--color-brand-hover` | Hover nút chính | `#173B5C` | Màu chính tối hơn ~10% |
-| `--color-brand-soft` | Nền nhạt nhấn mạnh, chip | `#E8F0F8` | Màu chính nhạt ~90% |
-| `--color-on-brand` | Chữ trên nền brand | `#FFFFFF` | Trắng hoặc đen, chọn theo tương phản ≥ 4.5:1 |
-| `--color-accent` | Badge "Công khai", điểm nhấn phụ, chấm timeline | `#C8873A` | Màu phụ |
-| `--color-accent-soft` | Nền badge accent | `#FBF1E4` | Màu phụ nhạt |
-| `--color-bg` | Nền trang | `#FAFAF8` | Màu nền |
-| `--color-surface` | Thẻ, bảng, dialog | `#FFFFFF` | |
-| `--color-surface-muted` | Nền vùng phụ, ghi chú nội bộ | `#F2F1EE` | |
-| `--color-admin-surface` | Nền thanh trên khu NexTure Admin | `#2B2B2B` | |
-| `--color-border` | Viền | `#E2E0DB` | |
-| `--color-text` | Chữ chính | `#1C1C1A` | Màu chữ |
-| `--color-text-muted` | Chữ phụ | `#5F5E59` | |
-| `--color-success` / `-soft` | LIVE, thành công | `#2E7D4F` / `#E6F4EC` | |
-| `--color-warning` / `-soft` | WAITING_ORG, cảnh báo | `#B26A00` / `#FFF4E0` | |
-| `--color-danger` / `-soft` | Lỗi, xóa, HIDDEN | `#B3261E` / `#FCE8E6` | |
-| `--color-status-draft` / `-soft` | Badge Nháp | `#6B6A65` / `#EFEEEA` | |
-| `--color-status-pending` / `-soft` | Badge Chờ duyệt | `#8A5A00` / `#FFF1D6` | |
-| `--color-status-verified` / `-soft` | Badge Đã xác minh | `#1F6F5C` / `#E3F3EE` | |
-| `--color-timeline-<event_type>` | Chấm timeline theo 8 loại sự kiện | dải 8 sắc độ của brand + accent | Sinh từ màu chính/phụ |
+## 3. Ánh xạ trạng thái NexTure sang badge
 
-Badge: chữ dùng màu đậm, nền dùng `-soft`.
+Badge luôn kèm chữ (không chỉ màu), dạng pill, không xuống dòng (DESIGN.md "Badge & Status Rules").
 
-## 3. Chữ
-
-| Token | Giá trị tạm | Lấy từ bộ nhận diện |
+| Trạng thái | Nhãn | Badge |
 |---|---|---|
-| `--font-sans` (thân bài, UI) | "Be Vietnam Pro", system-ui, sans-serif | Font chữ thân |
-| `--font-display` (tiêu đề Atlas, H1–H2) | "Be Vietnam Pro" | Font tiêu đề |
-| `--font-serif` (thân bài dài trên Atlas, tùy chọn) | không dùng | Nếu bộ nhận diện có font serif cho đọc dài |
+| `DRAFT` | Nháp | `neutral` |
+| `PENDING_REVIEW` | Chờ duyệt | `warning` |
+| `VERIFIED` | Đã xác minh | `success` |
+| visibility `PRIVATE` | Riêng tư | `neutral` + icon khóa |
+| visibility `INTERNAL` | Nội bộ | `neutral` |
+| visibility `PUBLIC` | Công khai | `info` |
+| publicState `LIVE` | Đang hiển thị trên Atlas | `success` |
+| publicState `WAITING_ORG` | Chờ bật hồ sơ Atlas | `warning` |
+| publicState `HIDDEN_BY_NEXTURE` | Bị NexTure ẩn | `error` |
+| publicState `NOT_USED` (media) | Công khai, chưa dùng trên Atlas | `neutral` |
+| Vai trò ADMIN / EDITOR / VIEWER | Quản trị / Biên tập / Người xem | `success` / `info` / `neutral` |
 
-Font tải bằng `next/font` (Google Fonts hoặc file local nếu là font thương mại; file đặt trong `packages/ui/fonts`), `display: swap`, subset `vietnamese` + `latin`.
+- Màu `accent` (cam đất) chỉ dùng cho việc **cần chú ý**: nội dung bị trả lại (`return_note`), hàng chờ duyệt quá 7 ngày. Không dùng cho lỗi.
+- Hàng đại diện một bản ghi có trạng thái (danh sách Story, Event, hàng chờ duyệt) dùng viền trái 4px: `primary` mặc định, `accent` khi bị trả lại (DESIGN.md "card-task").
 
-Thang cỡ chữ (rem, line-height):
+## 4. Bố cục
 
-| Token | Hub | Atlas | Dùng cho |
-|---|---|---|---|
-| `text-xs` | 0.75 / 1.4 | 0.75 / 1.4 | Badge, chú thích |
-| `text-sm` | 0.875 / 1.5 | 0.875 / 1.5 | Bảng, nhãn form |
-| `text-base` | 1 / 1.6 | 1.0625 / 1.75 | Thân bài |
-| `text-lg` | 1.125 / 1.5 | 1.25 / 1.6 | Tóm tắt, tiêu đề thẻ |
-| `text-xl` | 1.25 / 1.4 | 1.5 / 1.4 | H3 |
-| `text-2xl` | 1.5 / 1.3 | 2 / 1.25 | H2 |
-| `display-md` | — | 2.5 / 1.15 | H1 trang chi tiết |
-| `display-lg` | — | 3.5 / 1.1 (mobile 2.25) | Hero trang chủ |
+**Hub** (DESIGN.md "Grid & Layout", "Responsive Behavior"):
+- Sidebar nền `primary` 240px (≥1024px), thu về 64px chỉ icon (768–1023px), ẩn thành drawer (<768px). Topbar trắng 56px: tên doanh nghiệp (bấm để đổi doanh nghiệp), tên người dùng, avatar chữ cái, nút đăng xuất.
+- Nội dung đệm 24px (16px trên mobile). Tổng quan, form, cài đặt: `standard-content` (tối đa 1200px, căn giữa). Danh sách, bảng, hàng chờ duyệt, thư viện: `workspace-content` (full width). Màn đọc dài: `reading-content` (760px).
+- Màn quản trị theo "Data Management Screen": tiêu đề, mô tả, nút chính ở góc phải; thanh công cụ; vùng dữ liệu.
+- Trang đăng nhập, đăng ký, nhận lời mời, wizard tạo doanh nghiệp: một `card-welcome` giữa nền `canvas`.
 
-Độ đậm: 400 thân bài, 500 nhãn/nút, 600 tiêu đề, 700 chỉ cho display. Độ rộng dòng thân bài Atlas tối đa `68ch`.
+**Atlas**:
+- Thanh trên trắng 56px, chân trang `surface-dark`. Nội dung tối đa 1200px, lề 16px (mobile) / 24px.
+- Hero trang chủ `text-display-xl` (mobile `display-lg`); tiêu đề trang chi tiết `display-lg` (mobile `display-md`).
+- Thân bài dài tối đa `760px` (`max-w-reading`), cỡ `body-lg`.
+- Thẻ doanh nghiệp, nội dung: `card-default`, hover nền `canvas-section`. Thẻ giá trị văn hóa có viền trái `primary`.
 
-## 4. Hình khối
+## 5. Component
 
-| Token | Giá trị tạm | Ghi chú |
-|---|---|---|
-| `--radius-sm` | 6px | input, badge |
-| `--radius-md` | 10px | nút, thẻ Hub |
-| `--radius-lg` | 16px | thẻ Atlas, dialog |
-| `--radius-full` | 9999px | avatar, chip |
-| `--shadow-sm` | `0 1px 2px rgb(0 0 0 / 0.06)` | thẻ |
-| `--shadow-md` | `0 4px 16px rgb(0 0 0 / 0.08)` | dropdown, dialog |
-| Khoảng cách | thang 4px của Tailwind | |
-| Container Atlas | tối đa 1200px, lề 16px (mobile) / 32px (≥ 768) | |
-| Container Hub | full width, nội dung tối đa 1440px | |
+`apps/hub/src/components/ui.tsx` hiện có: `Button` (primary, secondary, ghost, ghost-primary, danger; md 44px, sm 40px), `linkButton`, `Input`, `Select`, `Textarea`, `Field`, `Card` (default, `section`, `welcome`), `Alert`, `Badge`, `PageHeader`, class bảng `tableHead`/`tableRow`. Khi Hub và Atlas cần dùng chung (từ bước 4), chuyển sang `packages/ui`.
 
-Icon: `lucide-react`, nét 1.75, cỡ 16 (Hub) / 20 (Atlas).
+Danh sách cần thêm ở các bước sau: `Combobox`, `Checkbox`, `Switch`, `Dialog`, `ConfirmDialog`, `Drawer`, `Tabs`, `Toast` (nền `surface-dark`), `Tooltip`, `Skeleton`, `EmptyState`, `Pagination`, `StatusBadge`, `VisibilityBadge`, `PublicStateBadge`, `FuzzyDateInput`, `RichTextEditor` (TipTap), `MediaPicker`, `UploadDialog` (dropzone viền nét đứt), `RelationEditor`, `SourceList`, `EntityStatusPanel`, và phần dùng chung Atlas: `EntityCard`, `CompanyCard`, `Timeline`, `Gallery`, `Lightbox`.
 
-## 5. Component (`packages/ui`)
+Mọi component tương tác có đủ hover, active, focus (`outline 2px focus-ring, offset 2px`), disabled theo bảng "Interaction States" của DESIGN.md.
 
-Dựa trên shadcn/ui, đã theme bằng token. Danh sách tối thiểu (tên export cố định):
+## 6. Kiểm tra giao diện
 
-- Cơ bản: `Button` (variant: primary, secondary, ghost, danger; size: sm, md, lg), `Input`, `Textarea` (có đếm ký tự), `Select`, `Combobox` (tìm kiếm, async), `Checkbox`, `Switch`, `RadioGroup`, `Dialog`, `ConfirmDialog`, `Drawer`, `Tabs`, `Toast`, `Tooltip`, `Badge`, `Skeleton`, `EmptyState`, `Pagination`, `DataTable`.
-- Nghiệp vụ Hub: `StatusBadge`, `VisibilityBadge`, `PublicStateBadge`, `FuzzyDateInput`, `FuzzyDateText`, `RichTextEditor` (TipTap), `RichTextView`, `MediaPicker`, `UploadDialog`, `RelationEditor`, `SourceList`, `EntityStatusPanel`, `OrgSwitcher`.
-- Dùng chung Hub preview và Atlas (`packages/ui/atlas`): `AtlasStoryPage`, `AtlasEventPage`, `AtlasPersonPage`, `AtlasProductPage`, `EntityCard`, `CompanyCard`, `Timeline`, `Gallery`, `Lightbox`. Các component này nhận dữ liệu đúng cấu trúc `atlas.entities` (+ relations, media) và **không** gọi API.
+1. Chụp màn hình bằng Playwright: đăng nhập, Tổng quan (1440px và 390px), Thành viên, wizard, trang chủ và hồ sơ doanh nghiệp của Atlas.
+2. Chuỗi kiểm tra tiếng Việt: "Ấn tượng đầu tiên: Sự kiện ra mắt sản phẩm năm 2024. ẮẰẲẴẶ ỄỆỈỊỌỎỐỒỔỖỘ ỚỜỞỠỢ ỤỦỨỪỬỮỰ ỲỴỶỸ đĐ".
+3. Không có mã hex trong `.tsx`: `grep -rnE "#[0-9a-fA-F]{3,8}\b" apps/*/src --include=*.tsx` phải rỗng.
 
-Mọi component tương tác PHẢI dùng được bằng bàn phím và có focus ring dùng `--color-brand`.
+## 7. Còn thiếu từ người dùng
 
-## 6. Kiểm tra khi thay bộ nhận diện
-
-1. Chạy trang `/_design` (chỉ có ở môi trường dev và staging) hiển thị toàn bộ token, thang chữ, component và chuỗi mẫu tiếng Việt: "Ấn tượng đầu tiên: Sự kiện ra mắt sản phẩm năm 2024 — Đội ngũ đã cùng nhau vượt qua thử thách. ẮẰẲẴẶ ỄỆỈỊỌỎỐỒỔỖỘ ỚỜỞỠỢ ỤỦỨỪỬỮỰ ỲỴỶỸ đĐ".
-2. Kiểm tra tương phản: chữ trên nền và chữ trên badge đạt ≥ 4.5:1 (script `pnpm check:contrast` đọc `tokens.css`).
-3. Chụp ảnh màn hình trang company và story của Atlas, dashboard và form Story của Hub để người dùng duyệt.
-
-## 7. Cần người dùng cung cấp
-
-- Mã màu (hex) của màu chính, màu phụ, màu nền, màu chữ (và các màu khác nếu bộ nhận diện có).
-- Tên font tiêu đề và font thân; file font nếu là font thương mại.
-- Logo NexTure (SVG, bản trên nền sáng và nền tối nếu có).
-- Tùy chọn: link Figma hoặc 1–2 website tham khảo phong cách.
+- Logo NexTure (SVG, bản nền sáng và nền tối). Hiện sidebar và Atlas dùng chữ "NexTure Hub" / "Culture Atlas".

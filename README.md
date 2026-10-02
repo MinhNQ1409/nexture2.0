@@ -15,7 +15,7 @@ apps/atlas      Next.js 16: trang công khai, đọc schema atlas bằng role ch
 packages/db     Schema Drizzle, migration SQL (sql/*.sql), migrate.ts
 packages/core   Nghiệp vụ: phân quyền, tổ chức, thành viên, lời mời (có test với Postgres thật)
 packages/contracts  Zod schema + danh mục (ngành, tỉnh/thành, vai trò)
-packages/config tokens.css: màu, font, bo góc (giá trị tạm, chờ bộ nhận diện)
+packages/config tokens.css: màu, font, bo góc theo docs/design/DESIGN.md
 ```
 
 ## Chạy ở máy
@@ -46,5 +46,6 @@ pnpm build
 
 - [x] Bước 1–2: monorepo, database (core + atlas, role chỉ-đọc), phân quyền, đăng nhập, tạo doanh nghiệp, thành viên, lời mời, khung Atlas (410, revalidate)
 - [ ] Bước 3: lát cắt Event đầu-cuối (tạo → xác minh → công khai → Atlas → gỡ → 410)
-- [ ] Bước 4: đủ Story, Person, Product/Project, tư liệu, Timeline, tìm kiếm; giao diện theo bộ nhận diện
+- [x] Bộ nhận diện (DESIGN.md) áp vào Hub và Atlas
+- [ ] Bước 4: đủ Story, Person, Product/Project, tư liệu, Timeline, tìm kiếm
 - [ ] Bước 5: seed demo và deploy (Neon, R2, Vercel, Resend)

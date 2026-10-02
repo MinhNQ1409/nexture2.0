@@ -1,6 +1,7 @@
+import { Circle, CircleCheck, ImagePlus } from 'lucide-react';
 import { ROLE_LABELS } from '@nexture/contracts';
 import { getOrg } from '@nexture/core';
-import { Alert, Card } from '@/components/ui';
+import { Alert, Badge, Card } from '@/components/ui';
 import { requirePageCtx } from '@/lib/session';
 
 const CHECKLIST = [
@@ -16,22 +17,54 @@ export default async function Dashboard({ params, searchParams }: { params: Prom
   const ctx = await requirePageCtx();
   const org = await getOrg(ctx, orgId);
   const created = (await searchParams).created === '1';
+  const done = CHECKLIST.filter(([k]) => org.onboarding[k]).length;
+
   return (
-    <div className="max-w-3xl space-y-6">
+    // standard-content
+    <div className="mx-auto flex w-full max-w-standard flex-col gap-4">
       {created && <Alert tone="success">Đã tạo Culture Hub cho {org.name}.</Alert>}
-      <h1 className="font-display text-3xl font-semibold">Tổng quan</h1>
-      <p className="text-text-muted">Vai trò của bạn: {ROLE_LABELS[org.myRole]}</p>
-      <Card>
-        <h2 className="font-display text-lg font-semibold">Bắt đầu xây dựng Culture Hub</h2>
-        <ul className="mt-4 space-y-2">
-          {!org.logoMediaId && <li className="text-text-muted">○ Thêm logo doanh nghiệp</li>}
-          {CHECKLIST.map(([k, label]) => (
-            <li key={k} className={org.onboarding[k] ? 'text-success' : 'text-text-muted'}>
-              {org.onboarding[k] ? '✓' : '○'} {label}
-            </li>
-          ))}
-        </ul>
-      </Card>
+
+      <section className="rounded-xl border border-hairline bg-canvas-white p-8 shadow-card">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-heading-lg md:text-display-md">Chào mừng tới Culture Hub</h1>
+          <Badge tone="info">{ROLE_LABELS[org.myRole]}</Badge>
+        </div>
+        <p className="mt-2 max-w-reading text-body-lg text-ink-mute">
+          Đây là nơi lưu giữ câu chuyện, cột mốc và con người làm nên văn hóa của {org.name}. Bắt đầu với vài mục dưới đây.
+        </p>
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-12">
+        <Card className="lg:col-span-8">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-heading-md">Bắt đầu xây dựng Culture Hub</h2>
+            <span className="tabular whitespace-nowrap text-caption text-ink-mute">
+              {done}/{CHECKLIST.length} mục
+            </span>
+          </div>
+          <ul className="mt-3 flex flex-col">
+            {CHECKLIST.map(([k, label]) => {
+              const ok = org.onboarding[k];
+              const Icon = ok ? CircleCheck : Circle;
+              return (
+                <li key={k} className="flex items-center gap-3 border-b border-hairline py-3 last:border-b-0">
+                  <Icon size={20} strokeWidth={1.5} aria-hidden className={ok ? 'text-success' : 'text-ink-subtle'} />
+                  <span className={ok ? 'text-ink' : 'text-ink-mute'}>{label}</span>
+                  <span className="sr-only">{ok ? 'đã xong' : 'chưa làm'}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+
+        {!org.logoMediaId && (
+          <section className="self-start rounded-xl bg-surface-dark p-8 text-on-dark lg:col-span-4">
+            <ImagePlus size={32} strokeWidth={1.5} aria-hidden />
+            <h2 className="mt-4 text-heading-md">Hoàn tất hồ sơ doanh nghiệp</h2>
+            <p className="mt-2 text-body-md text-on-dark-mute">Thêm logo, năm thành lập, ngành và mô tả ngắn để hồ sơ sẵn sàng lên Culture Atlas.</p>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

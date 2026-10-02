@@ -9,15 +9,16 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@nexture/config": "workspace:*",
     "@nexture/contracts": "workspace:*",
     "@nexture/db": "workspace:*",
     "drizzle-orm": "0.45.3",
+    "lucide-react": "1.50.0",
     "next": "16.3.8",
     "pg": "8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "server-only": "0.0.1",
-    "@nexture/config": "workspace:*"
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",

@@ -31,9 +31,9 @@ export function SignupForm({ next }: { next?: string }) {
   }
 
   return (
-    <Card>
+    <Card welcome>
       <form onSubmit={onSubmit} className="space-y-4">
-        <h1 className="font-display text-2xl font-semibold">Tạo tài khoản</h1>
+        <h1 className="text-display-md">Tạo tài khoản</h1>
         <Field label="Họ và tên" error={errors.name}>
           <Input name="name" autoComplete="name" required />
         </Field>
@@ -50,8 +50,8 @@ export function SignupForm({ next }: { next?: string }) {
         <Button type="submit" disabled={busy} className="w-full">
           Đăng ký
         </Button>
-        <p className="text-center text-sm">
-          <Link className="text-brand" href={next ? `/login?next=${encodeURIComponent(next)}` : '/login'}>
+        <p className="text-center text-body-md">
+          <Link className="text-link underline hover:text-link-hover" href={next ? `/login?next=${encodeURIComponent(next)}` : '/login'}>
             Đã có tài khoản? Đăng nhập
           </Link>
         </p>

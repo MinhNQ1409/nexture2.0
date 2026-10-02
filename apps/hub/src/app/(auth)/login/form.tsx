@@ -22,9 +22,9 @@ export function LoginForm({ next, justReset }: { next?: string; justReset: boole
   }
 
   return (
-    <Card>
+    <Card welcome>
       <form onSubmit={onSubmit} className="space-y-4">
-        <h1 className="font-display text-2xl font-semibold">Đăng nhập</h1>
+        <h1 className="text-display-md">Đăng nhập</h1>
         {justReset && <Alert tone="success">Đã đặt lại mật khẩu.</Alert>}
         <Field label="Email">
           <Input name="email" type="email" autoComplete="email" required />
@@ -41,11 +41,11 @@ export function LoginForm({ next, justReset }: { next?: string; justReset: boole
         <Button type="submit" disabled={busy} className="w-full">
           Đăng nhập
         </Button>
-        <div className="flex justify-between text-sm">
-          <Link className="text-brand" href="/forgot-password">
+        <div className="flex justify-between text-body-md">
+          <Link className="text-link underline hover:text-link-hover" href="/forgot-password">
             Quên mật khẩu?
           </Link>
-          <Link className="text-brand" href={next ? `/signup?next=${encodeURIComponent(next)}` : '/signup'}>
+          <Link className="text-link underline hover:text-link-hover" href={next ? `/signup?next=${encodeURIComponent(next)}` : '/signup'}>
             Chưa có tài khoản? Đăng ký
           </Link>
         </div>

@@ -8,10 +8,10 @@ export const metadata = { title: 'Khám phá doanh nghiệp · Culture Atlas', d
 export default async function Companies() {
   const companies = await getCompanies();
   return (
-    <div className="space-y-6">
-      <h1 className="font-display text-3xl font-semibold">Khám phá doanh nghiệp</h1>
+    <div className="flex flex-col gap-6">
+      <h1 className="text-display-md">Khám phá doanh nghiệp</h1>
       {companies.length === 0 ? (
-        <p className="text-text-muted">Chưa có doanh nghiệp phù hợp.</p>
+        <p className="flex min-h-80 items-center justify-center text-body-lg text-ink-mute">Chưa có doanh nghiệp nào ở đây.</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {companies.map((c) => (

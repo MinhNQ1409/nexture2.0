@@ -13,9 +13,9 @@ export default function ForgotPasswordPage() {
     setSent(true);
   }
   return (
-    <Card>
+    <Card welcome>
       <form onSubmit={onSubmit} className="space-y-4">
-        <h1 className="font-display text-2xl font-semibold">Quên mật khẩu</h1>
+        <h1 className="text-display-md">Quên mật khẩu</h1>
         {sent ? (
           <Alert tone="success">Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.</Alert>
         ) : (

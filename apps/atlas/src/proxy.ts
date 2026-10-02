@@ -20,7 +20,7 @@ async function isGone(path: string): Promise<boolean> {
 }
 
 const GONE_HTML = `<!doctype html><html lang="vi"><meta charset="utf-8"><title>Không còn hiển thị · Culture Atlas</title>
-<body style="font-family:system-ui;max-width:40rem;margin:4rem auto;padding:0 1rem"><h1>Nội dung này không còn hiển thị trên Atlas.</h1><p><a href="/">Về trang chủ</a></p></body></html>`;
+<body style="font-family:Inter,system-ui,sans-serif;color:#2C3E50;background:#F6F7F9;max-width:760px;margin:4rem auto;padding:0 1rem"><h1 style="font-family:'Be Vietnam Pro',system-ui,sans-serif">Nội dung này không còn hiển thị trên Atlas.</h1><p><a href="/" style="color:#075E9A">Về trang chủ</a></p></body></html>`;
 
 export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname.replace(/\/$/, '');

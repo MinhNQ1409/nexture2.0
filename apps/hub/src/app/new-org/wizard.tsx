@@ -67,12 +67,12 @@ export function NewOrgWizard() {
   }
 
   return (
-    <Card className="space-y-6">
+    <Card welcome className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-semibold">Tạo Culture Hub</h1>
+        <h1 className="text-display-md">Tạo Culture Hub</h1>
         <ol className="mt-4 flex gap-2">
           {STEPS.map((s, i) => (
-            <li key={s} className={`flex-1 border-t-4 pt-2 text-xs ${i <= step ? 'border-brand text-text' : 'border-border text-text-muted'}`}>
+            <li key={s} className={`flex-1 border-t-4 pt-2 text-caption ${i <= step ? 'border-primary text-ink' : 'border-hairline text-ink-mute'}`}>
               {i + 1}. {s}
             </li>
           ))}
@@ -154,7 +154,7 @@ export function NewOrgWizard() {
       {step === 2 && (
         <div className="space-y-4">
           {values.map((v, i) => (
-            <div key={i} className="space-y-2 rounded-md border border-border p-3">
+            <div key={i} className="space-y-2 rounded-md bg-canvas-section p-3">
               <Input value={v.nameVi} placeholder="Tên giá trị" onChange={(e) => setValues(values.map((x, j) => (j === i ? { ...x, nameVi: e.target.value } : x)))} />
               <Textarea rows={2} value={v.descriptionVi} placeholder="Mô tả ngắn" onChange={(e) => setValues(values.map((x, j) => (j === i ? { ...x, descriptionVi: e.target.value } : x)))} />
             </div>
@@ -168,7 +168,7 @@ export function NewOrgWizard() {
       )}
 
       <div className="flex justify-between">
-        <Button variant="secondary" disabled={step === 0} onClick={() => setStep(step - 1)}>
+        <Button variant="ghost" disabled={step === 0} onClick={() => setStep(step - 1)}>
           Quay lại
         </Button>
         {step < 2 ? (

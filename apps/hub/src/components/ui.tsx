@@ -1,50 +1,110 @@
-// Minimal primitives on design tokens; replaced by shadcn/ui components once the brand is set.
+// Primitives built strictly from DESIGN.md component tokens (button-*, text-input, card-*, badge-*, table-*).
 import type { ComponentProps } from 'react';
+import { CircleAlert, CircleCheck } from 'lucide-react';
 
-const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(' ');
+export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
-export function Button({ variant = 'primary', className, ...p }: ComponentProps<'button'> & { variant?: 'primary' | 'secondary' | 'danger' }) {
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'ghost-primary' | 'danger';
+const BUTTON: Record<ButtonVariant, string> = {
+  primary: 'bg-primary text-on-primary hover:bg-primary-dark active:bg-primary-dark',
+  secondary: 'bg-primary-light text-primary-dark hover:bg-canvas-section',
+  ghost: 'bg-transparent text-ink hover:bg-canvas-section',
+  'ghost-primary': 'bg-transparent text-primary hover:bg-primary-light',
+  danger: 'bg-error text-on-primary hover:opacity-90',
+};
+
+/** Button look for a <Link>. */
+export const linkButton = (variant: ButtonVariant = 'primary') =>
+  cx('inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-md px-5 text-button-md transition-colors duration-[120ms] ease-out', BUTTON[variant]);
+
+export function Button({ variant = 'primary', size = 'md', className, ...p }: ComponentProps<'button'> & { variant?: ButtonVariant; size?: 'sm' | 'md' }) {
   return (
     <button
+      type="button"
       {...p}
       className={cx(
-        'inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition disabled:opacity-50',
-        variant === 'primary' && 'bg-brand text-on-brand hover:bg-brand-hover',
-        variant === 'secondary' && 'border border-border bg-surface text-text hover:bg-surface-muted',
-        variant === 'danger' && 'bg-danger text-on-brand hover:opacity-90',
+        'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap transition-colors duration-[120ms] ease-out',
+        'disabled:cursor-not-allowed disabled:bg-disabled-bg disabled:text-disabled-text',
+        size === 'md' ? 'min-h-11 rounded-md px-5 text-button-md' : 'min-h-10 rounded-sm px-3.5 text-button-sm',
+        BUTTON[variant],
         className,
       )}
     />
   );
 }
 
-export function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: React.ReactNode }) {
+const control =
+  'w-full rounded-md border border-hairline bg-canvas-white px-3 py-2.5 text-body-md text-ink disabled:cursor-not-allowed disabled:bg-disabled-bg disabled:text-disabled-text aria-[invalid=true]:outline-2 aria-[invalid=true]:outline-error';
+
+export function Input({ className, ...p }: ComponentProps<'input'>) {
+  return <input {...p} className={cx(control, className)} />;
+}
+export function Select({ className, ...p }: ComponentProps<'select'>) {
+  return <select {...p} className={cx(control, 'pr-8', className)} />;
+}
+export function Textarea({ className, ...p }: ComponentProps<'textarea'>) {
+  return <textarea {...p} className={cx(control, className)} />;
+}
+
+export function Field({ label, error, hint, children }: { label: string; error?: string | null; hint?: string; children: React.ReactNode }) {
   return (
-    <label className="block space-y-1">
-      <span className="text-sm font-medium">{label}</span>
+    <label className="block">
+      <span className="block pb-1 text-body-md font-semibold">{label}</span>
       {children}
-      {hint && !error && <span className="block text-xs text-text-muted">{hint}</span>}
-      {error && <span className="block text-xs text-danger">{error}</span>}
+      {hint && !error && <span className="block pt-1 text-caption text-ink-mute">{hint}</span>}
+      {error && <span className="block pt-1 text-caption text-error">{error}</span>}
     </label>
   );
 }
 
-export function Input({ className, ...p }: ComponentProps<'input'>) {
-  return <input {...p} className={cx('w-full rounded-sm border border-border bg-surface px-3 py-2 text-sm', className)} />;
+/** card-default; `section` = card-section (nested), `welcome` = card-welcome (one per page). */
+export function Card({ section, welcome, className, ...p }: ComponentProps<'div'> & { section?: boolean; welcome?: boolean }) {
+  return (
+    <div
+      {...p}
+      className={cx(
+        welcome ? 'rounded-xl p-6 md:p-8' : 'rounded-lg p-5',
+        section ? 'bg-canvas-section' : 'border border-hairline bg-canvas-white shadow-card',
+        className,
+      )}
+    />
+  );
 }
 
-export function Select({ className, ...p }: ComponentProps<'select'>) {
-  return <select {...p} className={cx('w-full rounded-sm border border-border bg-surface px-3 py-2 text-sm', className)} />;
+export function Alert({ tone = 'error', children }: { tone?: 'error' | 'success'; children: React.ReactNode }) {
+  const Icon = tone === 'error' ? CircleAlert : CircleCheck;
+  return (
+    <p role={tone === 'error' ? 'alert' : 'status'} className={cx('flex items-start gap-2 rounded-md px-3 py-2.5 text-body-md', tone === 'error' ? 'bg-error-bg text-error' : 'bg-success-bg text-success')}>
+      <Icon size={20} strokeWidth={1.5} className="shrink-0" aria-hidden />
+      <span>{children}</span>
+    </p>
+  );
 }
 
-export function Textarea({ className, ...p }: ComponentProps<'textarea'>) {
-  return <textarea {...p} className={cx('w-full rounded-sm border border-border bg-surface px-3 py-2 text-sm', className)} />;
+type BadgeTone = 'success' | 'error' | 'warning' | 'info' | 'neutral';
+const BADGE: Record<BadgeTone, string> = {
+  success: 'bg-success-bg text-success',
+  error: 'bg-error-bg text-error',
+  warning: 'bg-warning-bg text-warning',
+  info: 'bg-info-bg text-info',
+  neutral: 'bg-canvas-section text-ink-mute',
+};
+export function Badge({ tone = 'neutral', children }: { tone?: BadgeTone; children: React.ReactNode }) {
+  return <span className={cx('inline-flex w-fit shrink-0 items-center gap-1 whitespace-nowrap rounded-pill px-2.5 py-0.5 text-caption', BADGE[tone])}>{children}</span>;
 }
 
-export function Card({ className, ...p }: ComponentProps<'div'>) {
-  return <div {...p} className={cx('rounded-md border border-border bg-surface p-6 shadow-sm', className)} />;
+/** Page header of a management screen: title, description, primary action. */
+export function PageHeader({ title, description, action }: { title: string; description?: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="min-w-0">
+        <h1 className="text-display-md">{title}</h1>
+        {description && <p className="mt-1 text-body-md text-ink-mute">{description}</p>}
+      </div>
+      {action}
+    </div>
+  );
 }
 
-export function Alert({ tone = 'danger', children }: { tone?: 'danger' | 'success'; children: React.ReactNode }) {
-  return <p className={cx('rounded-sm px-3 py-2 text-sm', tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-success-soft text-success')}>{children}</p>;
-}
+export const tableHead = 'bg-canvas-section text-left text-body-md font-semibold [&_th]:border-b [&_th]:border-hairline-strong [&_th]:px-4 [&_th]:py-3';
+export const tableRow = 'border-b border-hairline bg-canvas-white transition-colors hover:bg-primary-light [&_td]:px-4 [&_td]:py-3';

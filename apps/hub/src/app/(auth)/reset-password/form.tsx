@@ -18,18 +18,18 @@ export function ResetForm({ token }: { token?: string }) {
   }
   if (error === 'expired') {
     return (
-      <Card className="space-y-4">
+      <Card welcome className="space-y-4">
         <Alert>Liên kết đã hết hạn.</Alert>
-        <Link className="text-sm text-brand" href="/forgot-password">
+        <Link className="text-body-md text-link underline hover:text-link-hover" href="/forgot-password">
           Gửi lại liên kết
         </Link>
       </Card>
     );
   }
   return (
-    <Card>
+    <Card welcome>
       <form onSubmit={onSubmit} className="space-y-4">
-        <h1 className="font-display text-2xl font-semibold">Đặt lại mật khẩu</h1>
+        <h1 className="text-display-md">Đặt lại mật khẩu</h1>
         <Field label="Mật khẩu mới">
           <Input name="password" type="password" autoComplete="new-password" required />
         </Field>

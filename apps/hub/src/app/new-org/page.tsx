@@ -4,7 +4,7 @@ import { NewOrgWizard } from './wizard';
 export default async function NewOrgPage() {
   await requirePageCtx('/new-org');
   return (
-    <main className="mx-auto max-w-2xl p-6">
+    <main className="mx-auto w-full max-w-[760px] p-4 md:p-6">
       <NewOrgWizard />
     </main>
   );
