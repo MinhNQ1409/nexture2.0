@@ -13,6 +13,7 @@ export async function POST(req: Request) {
   if (!secretOk(req.headers.get('x-revalidate-secret'))) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   const body = (await req.json().catch(() => null)) as { tags?: unknown } | null;
   const tags = Array.isArray(body?.tags) ? body.tags.filter((t): t is string => typeof t === 'string').slice(0, 200) : [];
-  for (const tag of tags) revalidateTag(tag, 'max');
+  // Expire at once: an unpublished item must not be served even once more from stale cache.
+  for (const tag of tags) revalidateTag(tag, { expire: 0 });
   return NextResponse.json({ revalidated: tags.length });
 }

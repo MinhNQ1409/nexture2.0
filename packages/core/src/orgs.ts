@@ -9,6 +9,9 @@ import { requireMember, type Ctx, type DbOrTx } from './context';
 import { fail } from './errors';
 import { makeSlug, uniqueSlug } from './slug';
 import { parse } from './validate';
+import { mediaRefById } from './media';
+import { flushRevalidate } from './public/flush';
+import { emptySync, syncPublic } from './public/sync';
 
 type OrgRow = typeof t.organizations.$inferSelect;
 
@@ -71,14 +74,14 @@ function atlasUrl(org: OrgRow): string | null {
   return base ? `${base.replace(/\/$/, '')}/companies/${org.slug}` : null;
 }
 
-async function toDto(db: DbOrTx, org: OrgRow, role: OrgRole) {
+async function toDto(db: DbOrTx, org: OrgRow, role: OrgRole, ctx?: Ctx) {
   return {
     id: org.id,
     name: org.name,
     slug: org.slug,
     slugLocked: org.slugLocked,
     logoMediaId: org.logoMediaId,
-    logo: org.logoMediaId ? { id: org.logoMediaId } : null,
+    logo: ctx ? await mediaRefById(ctx, org.id, org.logoMediaId) : null,
     foundedYear: org.foundedYear,
     industryCode: org.industryCode,
     employeeSize: org.employeeSize,
@@ -157,7 +160,7 @@ export async function createOrg(ctx: Ctx, raw: CreateOrgInput): Promise<Organiza
       });
     }
     await logActivity(tx, { organizationId: id, actorId: userId, action: 'ORG_CREATED', targetType: 'ORGANIZATION', targetId: id, targetLabel: input.name });
-    return toDto(tx, org!, 'ADMIN');
+    return toDto(tx, org!, 'ADMIN', ctx);
   });
 }
 
@@ -165,13 +168,14 @@ export async function getOrg(ctx: Ctx, orgId: string): Promise<OrganizationDto> 
   const role = await requireMember(ctx.db, ctx.actor, orgId);
   const [org] = await ctx.db.select().from(t.organizations).where(eq(t.organizations.id, orgId));
   if (!org) return fail('NOT_FOUND');
-  return toDto(ctx.db, org, role);
+  return toDto(ctx.db, org, role, ctx);
 }
 
 /** PATCH /orgs/{orgId} (ADMIN). Atlas sync of the profile is wired in with syncPublic (step 3). */
 export async function updateOrg(ctx: Ctx, orgId: string, raw: UpdateOrgInput): Promise<OrganizationDto> {
   const { version, ...patch } = parse(updateOrgInput, raw);
-  return ctx.db.transaction(async (tx) => {
+  const sync = emptySync();
+  const dto = await ctx.db.transaction(async (tx) => {
     const role = await requireMember(tx, ctx.actor, orgId);
     if (!canOrg(role, 'org.edit')) fail('FORBIDDEN');
     const [org] = await tx.select().from(t.organizations).where(eq(t.organizations.id, orgId)).for('update');
@@ -212,8 +216,12 @@ export async function updateOrg(ctx: Ctx, orgId: string, raw: UpdateOrgInput): P
     if (Object.keys(changes).length) {
       await logActivity(tx, { organizationId: orgId, actorId: ctx.actor.userId, action: 'ORG_UPDATED', targetType: 'ORGANIZATION', targetId: orgId, targetLabel: updated!.name, changes });
     }
-    return toDto(tx, updated!, role);
+    // Profile shown on Atlas changes with it (08-cong-khai §1, scope org).
+    if (updated!.atlasEnabled) await syncPublic(tx, ctx.storage, { kind: 'org', orgId }, sync);
+    return toDto(tx, updated!, role, ctx);
   });
+  await flushRevalidate(ctx, sync);
+  return dto;
 }
 
 function stripUndefined<T extends Record<string, unknown>>(o: T): Partial<T> {

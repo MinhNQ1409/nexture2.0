@@ -1,5 +1,5 @@
 // The single source of the "shown on Atlas" rule: docs/spec/04-trang-thai.md §3.
-import type { ContentStatus, Visibility } from './authz';
+import type { ContentStatus, Visibility } from '../authz';
 
 export type PublicEntityState = { deletedAt: Date | null; status: ContentStatus; visibility: Visibility; atlasHiddenAt: Date | null };
 export type PublicOrgState = { atlasEnabled: boolean; atlasHiddenAt: Date | null };

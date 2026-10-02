@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPublic, publicState } from '../src/public';
+import { isPublic, publicState } from '../src/public/rules';
 
 describe('isPublic (04 §3)', () => {
   it('is true only when all 5 conditions hold, across all 32 combinations', () => {

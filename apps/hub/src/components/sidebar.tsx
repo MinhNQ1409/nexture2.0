@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { BookOpen, CalendarClock, Gem, Images, LayoutDashboard, Menu, Package, UserCog, Users, X, type LucideIcon } from 'lucide-react';
+import { BookOpen, Building2, CalendarClock, Flag, Gem, Globe, Images, LayoutDashboard, Menu, Package, UserCog, Users, X, type LucideIcon } from 'lucide-react';
 import { cx } from './ui';
 
 type Item = { href: string; label: string; icon: LucideIcon; ready?: boolean; adminOrEditor?: boolean };
@@ -14,13 +14,21 @@ const SECTIONS: { label: string; items: Item[] }[] = [
       { href: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard, ready: true },
       { href: 'timeline', label: 'Culture Timeline', icon: CalendarClock },
       { href: 'stories', label: 'Câu chuyện', icon: BookOpen },
+      { href: 'events', label: 'Sự kiện', icon: Flag, ready: true },
       { href: 'people', label: 'Con người', icon: Users },
       { href: 'products', label: 'Sản phẩm & Dự án', icon: Package },
       { href: 'values', label: 'Giá trị văn hóa', icon: Gem },
       { href: 'library', label: 'Thư viện tư liệu', icon: Images },
     ],
   },
-  { label: 'Quản trị', items: [{ href: 'settings/members', label: 'Thành viên', icon: UserCog, ready: true, adminOrEditor: true }] },
+  {
+    label: 'Quản trị',
+    items: [
+      { href: 'atlas', label: 'Culture Atlas', icon: Globe, ready: true, adminOrEditor: true },
+      { href: 'settings/profile', label: 'Hồ sơ doanh nghiệp', icon: Building2, ready: true },
+      { href: 'settings/members', label: 'Thành viên', icon: UserCog, ready: true, adminOrEditor: true },
+    ],
+  },
 ];
 
 function NavList({ orgId, canSeeAdmin, compact, onNavigate }: { orgId: string; canSeeAdmin: boolean; compact: boolean; onNavigate?: () => void }) {

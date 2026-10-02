@@ -45,7 +45,7 @@ pnpm build
 ## Tiến độ
 
 - [x] Bước 1–2: monorepo, database (core + atlas, role chỉ-đọc), phân quyền, đăng nhập, tạo doanh nghiệp, thành viên, lời mời, khung Atlas (410, revalidate)
-- [ ] Bước 3: lát cắt Event đầu-cuối (tạo → xác minh → công khai → Atlas → gỡ → 410)
+- [x] Bước 3: lát cắt Event đầu-cuối (tạo → xác minh → công khai → Atlas → gỡ → 410), tải logo, hồ sơ doanh nghiệp, bật/tắt Atlas. Không có S3_ENDPOINT thì file lưu trên đĩa
 - [x] Bộ nhận diện (DESIGN.md) áp vào Hub và Atlas
 - [ ] Bước 4: đủ Story, Person, Product/Project, tư liệu, Timeline, tìm kiếm
 - [ ] Bước 5: seed demo và deploy (Neon, R2, Vercel, Resend)

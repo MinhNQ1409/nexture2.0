@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Building2, CalendarDays, ExternalLink, MapPin } from 'lucide-react';
-import { getCompany } from '@/lib/queries';
+import Link from 'next/link';
+import { getCompany, getCompanyEvents } from '@/lib/queries';
+import { eventDate } from '@/lib/dates';
 
 // Rendered per request so builds never need the database; data itself is cached by tag in lib/queries.ts.
 export const dynamic = 'force-dynamic';
@@ -14,6 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function CompanyPage({ params }: { params: Promise<{ slug: string }> }) {
   const c = await getCompany((await params).slug);
   if (!c) notFound();
+  const events = await getCompanyEvents(c.orgId, c.slug);
   const facts = [
     c.industryName && { icon: Building2, text: c.industryName },
     c.foundedYear && { icon: CalendarDays, text: `Thành lập ${c.foundedYear}` },
@@ -65,6 +68,21 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
               </li>
             ))}
           </ul>
+        </section>
+      )}
+      {events.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <h2 className="text-heading-lg">Dòng thời gian</h2>
+          <ol className="flex flex-col gap-4 border-l-2 border-hairline pl-6">
+            {events.map((e) => (
+              <li key={e.slug} className="relative">
+                <span className="absolute -left-[31px] top-1.5 size-3 rounded-full bg-primary" aria-hidden />
+                <p className="text-body-md text-ink-mute">{eventDate(e.sortDate, e.datePrecision)}{e.subtitle ? ` · ${e.subtitle}` : ''}</p>
+                <Link href={`/events/${e.slug}`} className="font-display text-heading-sm text-ink hover:text-primary">{e.title}</Link>
+                {e.summary && <p className="mt-1 max-w-reading text-body-md text-ink-mute">{e.summary}</p>}
+              </li>
+            ))}
+          </ol>
         </section>
       )}
     </article>
