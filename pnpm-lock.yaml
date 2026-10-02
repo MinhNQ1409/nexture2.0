@@ -146,10 +146,10 @@ importers:
   packages/core:
     dependencies:
       '@aws-sdk/client-s3':
-        specifier: ^3.1145.0
+        specifier: 3.1145.0
         version: 3.1145.0
       '@aws-sdk/s3-request-presigner':
-        specifier: ^3.1145.0
+        specifier: 3.1145.0
         version: 3.1145.0
       '@nexture/contracts':
         specifier: workspace:*
@@ -161,7 +161,7 @@ importers:
         specifier: 0.45.3
         version: 0.45.3(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
       sanitize-html:
-        specifier: ^2.18.0
+        specifier: 2.18.0
         version: 2.18.0
       slugify:
         specifier: 1.6.9
