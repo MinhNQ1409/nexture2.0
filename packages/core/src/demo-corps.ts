@@ -150,6 +150,10 @@ async function createCorp(ctx: Ctx, c: CorpDemo): Promise<string> {
   return orgId;
 }
 
+/** Editor login created with each sample corporation (apps/hub lib/demo-accounts.ts), e.g. vinamilk@gmail.com. */
+export const demoEditorEmail = (key: string) => `${key}@gmail.com`;
+export const DEMO_EDITOR_EMAILS = CORPS.map((c) => demoEditorEmail(c.key));
+
 /** POST /demo { set: 'corps', only?: ['vinamilk'] }: creates the corporations for the caller (ADMIN of each); returns the first org id. */
 export async function createCorpDemos(ctx: Ctx, only?: string[]): Promise<{ orgId: string; orgIds: string[]; corps: { key: string; name: string; orgId: string }[] }> {
   const picked = only?.length ? CORPS.filter((c) => only.includes(c.key)) : CORPS;

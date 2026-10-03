@@ -12,6 +12,7 @@ import { flushRevalidate } from './public/flush';
 import { publicState } from './public/rules';
 import { atlasPath, atlasTypeOf, emptySync, syncPublic } from './public/sync';
 import { parse } from './validate';
+import { DEMO_EDITOR_EMAILS } from './demo-corps';
 
 const atlasBase = (ctx: Ctx) => (ctx.atlas?.baseUrl ?? process.env.ATLAS_BASE_URL ?? '').replace(/\/$/, '');
 const orgAtlasState = (o: { atlasEnabled: boolean; atlasHiddenAt: Date | null }): 'ON' | 'OFF' | 'HIDDEN' => (o.atlasHiddenAt ? 'HIDDEN' : o.atlasEnabled ? 'ON' : 'OFF');
@@ -214,11 +215,36 @@ export async function adminDeleteOrg(ctx: Ctx, orgId: string, raw: unknown) {
     privateKeys.push(...media.map((m) => m.key));
     // Cross-links reference rows of this org only; break the org <-> media/story cycles, then cascade.
     await tx.update(t.organizations).set({ logoMediaId: null, featuredStoryId: null }).where(eq(t.organizations.id, orgId));
+    // Sample editor logins (vinamilk@gmail.com…) of this org, so they can be removed with it.
+    const demoMembers = await tx
+      .select({ id: t.user.id })
+      .from(t.organizationMembers)
+      .innerJoin(t.user, eq(t.user.id, t.organizationMembers.userId))
+      .where(and(eq(t.organizationMembers.organizationId, orgId), inArray(sql`lower(${t.user.email})`, DEMO_EDITOR_EMAILS)));
     await tx.delete(t.organizations).where(eq(t.organizations.id, orgId));
+    await removeOrphanDemoAccounts(tx, demoMembers.map((m) => m.id));
     await logActivity(tx, { organizationId: null, actorId: ctx.actor.userId, action: 'ORG_DELETED', targetType: 'ORGANIZATION', targetId: orgId, targetLabel: `${o.name} (${o.slug})` });
   });
   await flushRevalidate(ctx, sync);
   for (const key of privateKeys) await ctx.storage?.deletePrivate(key).catch((e) => console.error('[admin] delete private file failed', key, e));
+}
+
+/**
+ * A sample editor login left without any company is signed out everywhere and deleted, so an old browser session
+ * lands on the sign-in page instead of "Tạo Culture Hub". If something still references the account, it is only signed out.
+ */
+async function removeOrphanDemoAccounts(tx: Parameters<Parameters<Ctx['db']['transaction']>[0]>[0], userIds: string[]) {
+  for (const userId of userIds) {
+    const [still] = await tx.select({ id: t.organizationMembers.organizationId }).from(t.organizationMembers).where(eq(t.organizationMembers.userId, userId)).limit(1);
+    if (still) continue;
+    await tx.delete(t.session).where(eq(t.session.userId, userId));
+    await tx
+      .transaction(async (sp) => {
+        await sp.delete(t.account).where(eq(t.account.userId, userId));
+        await sp.delete(t.user).where(eq(t.user.id, userId));
+      })
+      .catch(() => undefined);
+  }
 }
 
 /** Platform-level actions (deleted companies) for the admin home. */

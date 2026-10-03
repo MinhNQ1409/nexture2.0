@@ -7,6 +7,7 @@ import { createEvent, getEvent, listEvents } from '../src/content/events';
 import { addSource, removeSource, updateSource } from '../src/content/sources';
 import { setVisibility } from '../src/content/workflow';
 import { getMe } from '../src/me';
+import { addMemberByEmail } from '../src/invites';
 import { createOrg, getOrg, updateOrg } from '../src/orgs';
 import { publicPreview } from '../src/public/preview';
 import { searchOrg } from '../src/views';
@@ -136,6 +137,20 @@ describe('nexture admin', () => {
     expect(await company(org.id)).toBeUndefined(); // still hidden until NexTure unhides
     await adminUnhide(nexture.ctx, { targetType: 'ORGANIZATION', targetId: org.id });
     expect(await company(org.id)).toBeDefined();
+  });
+
+  it('deleting a sample corporation removes its sample editor login when it has no other company', async () => {
+    const { admin, org, nexture } = await setup();
+    const ed = await makeUser('Biên tập FPT');
+    await db.update(t.user).set({ email: 'fpt@gmail.com' }).where(eq(t.user.id, ed.id));
+    await db.insert(t.session).values({ id: `s-${ed.id}`, userId: ed.id, token: `tok-${ed.id}`, expiresAt: new Date(Date.now() + 86_400_000) });
+    await addMemberByEmail(admin.ctx, org.id, { email: 'fpt@gmail.com', role: 'EDITOR' });
+    const other = await makeUser('Thường');
+    await addMemberByEmail(admin.ctx, org.id, { email: (await db.select().from(t.user).where(eq(t.user.id, other.id)))[0]!.email, role: 'VIEWER' });
+    await adminDeleteOrg(nexture.ctx, org.id, { confirmSlug: org.slug });
+    expect(await db.select().from(t.user).where(eq(t.user.id, ed.id))).toHaveLength(0);
+    expect(await db.select().from(t.session).where(eq(t.session.userId, ed.id))).toHaveLength(0);
+    expect(await db.select().from(t.user).where(eq(t.user.id, other.id))).toHaveLength(1);
   });
 
   it('never deletes the company named NexTure', async () => {
