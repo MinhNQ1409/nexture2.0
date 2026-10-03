@@ -27,7 +27,7 @@ const SEA_LABELS = (l: Labels): [string, [number, number], string][] => [
 
 function dotHtml(n: number, active: boolean) {
   const size = Math.round(Math.min(56, 28 + Math.sqrt(n) * 6));
-  const tone = active ? 'bg-accent ring-4 ring-accent-light' : 'bg-primary ring-2 ring-canvas-white';
+  const tone = active ? 'bg-surface-dark ring-4 ring-primary-light' : 'bg-primary ring-2 ring-canvas-white';
   return `<span class="map-dot ${tone}" style="width:${size}px;height:${size}px;margin-left:-${size / 2}px;margin-top:-${size / 2}px">${n}</span>`;
 }
 

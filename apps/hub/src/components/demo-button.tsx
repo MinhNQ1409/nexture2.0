@@ -28,7 +28,7 @@ export function DemoButton({ variant = 'secondary', set }: { variant?: 'primary'
     <div className="flex flex-col gap-2">
       <Button variant={variant} loading={busy} onClick={load}>
         {!busy && (set ? <Building size={18} strokeWidth={1.5} aria-hidden /> : <DatabaseZap size={18} strokeWidth={1.5} aria-hidden />)}
-        {set ? (busy ? 'Đang nạp Vinamilk, FPT, Vingroup...' : 'Tải 3 tập đoàn mẫu (Vinamilk, FPT, Vingroup)') : busy ? 'Đang tạo dữ liệu demo...' : 'Tải dữ liệu demo'}
+        {set ? (busy ? 'Đang nạp Vinamilk, FPT, Vingroup...' : 'Tải 3 tập đoàn mẫu') : busy ? 'Đang tạo dữ liệu demo...' : 'Tải dữ liệu demo'}
       </Button>
       {error && <Alert tone="error">{error}</Alert>}
     </div>

@@ -40,6 +40,7 @@ export default async function Home() {
   return (
     <div className="flex flex-col gap-12">
       <section className="flex flex-col gap-4">
+        <p className="text-micro-cap uppercase text-primary">NexTure · Culture Atlas</p>
         <h1 className="max-w-[900px] text-display-lg md:text-display-xl">Vietnam Enterprise Culture Atlas</h1>
         <p className="max-w-reading text-body-lg text-ink-mute">{t.siteDesc}</p>
         <SearchBox large t={t} />

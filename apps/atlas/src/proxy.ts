@@ -25,7 +25,7 @@ const GONE = {
   en: { title: 'No longer available', body: 'This content is no longer shown on the Atlas.', home: 'Back to home' },
 };
 const goneHtml = (lang: 'vi' | 'en') => `<!doctype html><html lang="${lang}"><meta charset="utf-8"><title>${GONE[lang].title} · Culture Atlas</title>
-<body style="font-family:Inter,system-ui,sans-serif;color:#2C3E50;background:#F6F7F9;max-width:760px;margin:4rem auto;padding:0 1rem"><h1 style="font-family:'Be Vietnam Pro',system-ui,sans-serif">${GONE[lang].body}</h1><p><a href="/" style="color:#075E9A">${GONE[lang].home}</a></p></body></html>`;
+<body style="font-family:Inter,system-ui,sans-serif;color:#1A1A1A;background:#F7F5F3;max-width:760px;margin:4rem auto;padding:0 1rem"><h1 style="font-family:Inter,system-ui,sans-serif">${GONE[lang].body}</h1><p><a href="/" style="color:#8B572A">${GONE[lang].home}</a></p></body></html>`;
 
 export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname.replace(/\/$/, '');

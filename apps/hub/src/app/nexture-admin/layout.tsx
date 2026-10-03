@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { requirePageCtx } from '@/lib/session';
+import { BrandLockup } from '@/components/brand';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requirePageCtx('/nexture-admin');
@@ -12,11 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="sticky top-0 z-[10] bg-surface-dark text-on-dark">
         <div className="mx-auto flex h-topbar w-full max-w-standard items-center gap-4 px-4 md:px-6">
           <Link href="/nexture-admin" className="flex items-center gap-3">
-            <span className="inline-flex size-9 items-center justify-center rounded-md bg-canvas-white">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/nexture-mark.png" alt="" width={26} height={19} />
-            </span>
-            <span className="font-display text-heading-sm">NexTure · Quản trị nội bộ</span>
+            <BrandLockup sub="Quản trị nội bộ" onDark />
           </Link>
           <Link href="/" className="ml-auto inline-flex items-center gap-2 text-body-md text-on-dark-mute hover:text-on-dark">
             <ArrowLeft size={16} strokeWidth={1.5} aria-hidden />

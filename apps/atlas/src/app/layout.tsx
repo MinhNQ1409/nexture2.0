@@ -5,6 +5,7 @@ import { fontVars } from '@/lib/fonts';
 import { getT } from '@/lib/i18n';
 import { LangSwitch } from './lang-switch';
 import { NavLink } from './nav-link';
+import { BrandLockup } from './brand';
 import './globals.css';
 
 const demo = process.env.DEMO_MODE === 'true';
@@ -23,12 +24,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={lang} className={fontVars}>
       <body className="flex min-h-screen flex-col">
-        <header className="sticky top-0 z-[1100] border-b border-hairline bg-canvas-white/95 backdrop-blur">
+        <header className="sticky top-0 z-[1100] border-b border-hairline bg-canvas-white">
           <nav className="mx-auto flex h-topbar w-full max-w-standard items-center gap-4 px-4 md:gap-6 md:px-6">
-            <Link href="/" className="flex shrink-0 items-center gap-2 font-display text-heading-md text-primary">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/nexture-mark.png" alt="" width={30} height={22} />
-              <span className="hidden sm:inline">Culture Atlas</span>
+            <Link href="/" aria-label="NexTure Culture Atlas" className="shrink-0">
+              <BrandLockup sub="Culture Atlas" hideText="hidden sm:block" />
             </Link>
             <NavLink href="/companies">{t.navCompanies}</NavLink>
             <NavLink href="/map">
@@ -43,8 +42,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </nav>
         </header>
         <main className="mx-auto w-full max-w-standard flex-1 px-4 py-8 md:px-6 md:py-12">{children}</main>
-        <footer className="bg-surface-dark py-4 text-caption text-on-dark-mute">
-          <div className="mx-auto w-full max-w-standard px-4 md:px-6">{t.footer}</div>
+        <footer className="bg-surface-dark py-8 text-caption text-on-dark-mute">
+          <div className="mx-auto flex w-full max-w-standard flex-col gap-4 px-4 md:flex-row md:items-center md:justify-between md:px-6">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/nexture-logo-light.png" alt="Executive NexTure" width={130} height={60} className="h-[60px] w-auto" />
+            <p>{t.footer}</p>
+          </div>
         </footer>
       </body>
     </html>

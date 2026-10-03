@@ -43,7 +43,7 @@ async function createCorp(ctx: Ctx, c: CorpDemo): Promise<string> {
   const orgId = uuidv7();
   const logoId = uuidv7();
   const logoKey = `orgs/${orgId}/media/${logoId}/logo-${c.key}.svg`;
-  const l = LOGO[c.key] ?? { initials: c.name.slice(0, 2).toUpperCase(), fill: '#18794E', line: '#D3F2E2' };
+  const l = LOGO[c.key] ?? { initials: c.name.slice(0, 2).toUpperCase(), fill: '#8B572A', line: '#F3EAE1' };
   const logo = logoSvg(l.initials, l.fill, l.line);
   if (ctx.storage) await ctx.storage.putPrivate(logoKey, logo, 'image/svg+xml');
   const label = `${c.name} (Demo)`;

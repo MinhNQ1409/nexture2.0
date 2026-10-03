@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { BookOpen, Building2, CalendarClock, ClipboardCheck, History, Flag, Gem, Globe, Images, LayoutDashboard, Menu, Package, UserCog, Users, X, type LucideIcon } from 'lucide-react';
 import { cx } from './ui';
+import { BrandLockup } from './brand';
 
 type Item = { href: string; label: string; icon: LucideIcon; ready?: boolean; adminOrEditor?: boolean; adminOnly?: boolean };
 const SECTIONS: { label: string; items: Item[] }[] = [
@@ -42,7 +43,7 @@ function NavList({ orgId, canSeeAdmin, isAdmin, compact, onNavigate }: { orgId: 
         if (!items.length) return null;
         return (
           <div key={s.label} className="flex flex-col gap-1">
-            <p className={cx('px-4 pb-1 pt-4 text-micro-cap uppercase text-on-primary/50', compact && 'lg:block hidden')}>{s.label}</p>
+            <p className={cx('px-4 pb-1 pt-4 text-micro-cap uppercase text-on-dark-mute/70', compact && 'lg:block hidden')}>{s.label}</p>
             {items.map((i) => {
               const href = `/o/${orgId}/${i.href}`;
               const active = pathname.startsWith(href);
@@ -55,8 +56,8 @@ function NavList({ orgId, canSeeAdmin, isAdmin, compact, onNavigate }: { orgId: 
               const cls = cx(
                 'flex min-h-11 items-center gap-3 rounded-sm px-4 py-2.5 text-body-md transition-colors duration-[120ms]',
                 compact && 'justify-center px-0 lg:justify-start lg:px-4',
-                active ? 'bg-primary-dark font-semibold text-on-primary' : 'text-on-primary/70',
-                i.ready ? 'hover:bg-primary-dark hover:text-on-primary' : 'cursor-not-allowed opacity-60',
+                active ? 'bg-primary font-semibold text-on-primary' : 'text-on-dark-mute',
+                i.ready ? (active ? '' : 'hover:bg-surface-dark-hover hover:text-on-dark') : 'cursor-not-allowed opacity-60',
               );
               return i.ready ? (
                 <Link key={i.href} href={href} className={cls} aria-current={active ? 'page' : undefined} title={i.label} onClick={onNavigate}>
@@ -77,12 +78,8 @@ function NavList({ orgId, canSeeAdmin, isAdmin, compact, onNavigate }: { orgId: 
 
 function Brand({ compact }: { compact: boolean }) {
   return (
-    <div className={cx('flex h-topbar items-center gap-3 px-6 font-display text-heading-md text-on-primary', compact && 'justify-center px-0 lg:justify-start lg:px-6')}>
-      <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-canvas-white">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/nexture-mark.png" alt="" width={26} height={19} />
-      </span>
-      <span className={cx(compact && 'hidden lg:inline')}>NexTure Hub</span>
+    <div className={cx('flex h-topbar items-center border-b border-on-dark/10 px-6', compact && 'justify-center px-0 lg:justify-start lg:px-6')}>
+      <BrandLockup sub="Culture Hub" onDark hideText={compact ? 'hidden lg:block' : undefined} />
     </div>
   );
 }
@@ -93,7 +90,7 @@ export function Sidebar({ orgId, canSeeAdmin, isAdmin }: { orgId: string; canSee
   useEffect(() => setOpen(false), [pathname]);
   return (
     <>
-      <aside className="sticky top-0 hidden h-screen w-sidebar-collapsed shrink-0 flex-col overflow-y-auto bg-primary md:flex lg:w-sidebar">
+      <aside className="sticky top-0 hidden h-screen w-sidebar-collapsed shrink-0 flex-col overflow-y-auto bg-surface-dark md:flex lg:w-sidebar">
         <Brand compact />
         <NavList orgId={orgId} canSeeAdmin={canSeeAdmin} isAdmin={isAdmin} compact />
       </aside>
@@ -104,10 +101,10 @@ export function Sidebar({ orgId, canSeeAdmin, isAdmin }: { orgId: string; canSee
       {open && (
         <div className="fixed inset-0 z-[50] md:hidden" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-surface-dark/40" onClick={() => setOpen(false)} />
-          <aside className="relative flex h-full w-sidebar flex-col overflow-y-auto bg-primary shadow-drawer">
+          <aside className="relative flex h-full w-sidebar flex-col overflow-y-auto bg-surface-dark shadow-drawer">
             <div className="flex items-center justify-between pr-2">
               <Brand compact={false} />
-              <button type="button" className="inline-flex size-10 items-center justify-center rounded-md text-on-primary hover:bg-primary-dark" aria-label="Đóng menu" onClick={() => setOpen(false)}>
+              <button type="button" className="inline-flex size-10 items-center justify-center rounded-md text-on-dark hover:bg-surface-dark-hover" aria-label="Đóng menu" onClick={() => setOpen(false)}>
                 <X size={24} strokeWidth={1.5} aria-hidden />
               </button>
             </div>

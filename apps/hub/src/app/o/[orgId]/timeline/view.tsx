@@ -29,12 +29,12 @@ type Detail = {
 /** Dot colour per event type; tokens only. */
 const DOT: Record<EventType, string> = {
   FOUNDING: 'bg-primary',
-  MILESTONE: 'bg-primary-dark',
+  MILESTONE: 'bg-surface-dark',
   PRODUCT_LAUNCH: 'bg-accent',
-  ACHIEVEMENT: 'bg-success',
-  EXPANSION: 'bg-info',
+  ACHIEVEMENT: 'bg-primary-dark',
+  EXPANSION: 'bg-ink-mute',
   CULTURE_ACTIVITY: 'bg-accent-dark',
-  PARTNERSHIP: 'bg-link',
+  PARTNERSHIP: 'bg-ink',
   OTHER: 'bg-ink-subtle',
 };
 
