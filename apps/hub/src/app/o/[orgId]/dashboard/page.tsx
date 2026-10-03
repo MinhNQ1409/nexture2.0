@@ -20,7 +20,7 @@ export default async function Dashboard({
   searchParams,
 }: {
   params: Promise<{ orgId: string }>;
-  searchParams: Promise<{ created?: string; demo?: string }>;
+  searchParams: Promise<{ created?: string; demo?: string; editors?: string }>;
 }) {
   const { orgId } = await params;
   const ctx = await requirePageCtx();
@@ -28,6 +28,7 @@ export default async function Dashboard({
   const sp = await searchParams;
   const created = sp.created === "1";
   const demo = sp.demo === "1";
+  const editors = (sp.editors ?? "").split(",").filter((e) => /^[a-z0-9]+@gmail\.com$/.test(e));
   const done = CHECKLIST.filter(([k]) => org.onboarding[k]).length;
   const [pending, activity] = await Promise.all([
     canOrg(org.myRole, "review.view") ? reviewQueue(ctx, orgId).then((r) => r.items.length) : null,
@@ -39,6 +40,13 @@ export default async function Dashboard({
     <div className="mx-auto flex w-full max-w-standard flex-col gap-4">
       {created && (
         <Alert tone="success">Đã tạo Culture Hub cho {org.name}.</Alert>
+      )}
+      {editors.length > 0 && (
+        <Alert tone="success">
+          Tài khoản Biên tập viên để demo: <b>{editors.join(", ")}</b>, mật khẩu{" "}
+          <b>12345678</b>. Đăng xuất rồi đăng nhập bằng một tài khoản này để xem
+          Hub dưới vai trò Biên tập viên.
+        </Alert>
       )}
       {demo && (
         <Alert tone="success">

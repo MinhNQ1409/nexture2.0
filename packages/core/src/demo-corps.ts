@@ -151,10 +151,10 @@ async function createCorp(ctx: Ctx, c: CorpDemo): Promise<string> {
 }
 
 /** POST /demo { set: 'corps', only?: ['vinamilk'] }: creates the corporations for the caller (ADMIN of each); returns the first org id. */
-export async function createCorpDemos(ctx: Ctx, only?: string[]): Promise<{ orgId: string; orgIds: string[] }> {
+export async function createCorpDemos(ctx: Ctx, only?: string[]): Promise<{ orgId: string; orgIds: string[]; corps: { key: string; name: string; orgId: string }[] }> {
   const picked = only?.length ? CORPS.filter((c) => only.includes(c.key)) : CORPS;
   if (!picked.length) throw new AppError('VALIDATION_FAILED', { only });
-  const orgIds: string[] = [];
-  for (const c of picked) orgIds.push(await createCorp(ctx, c));
-  return { orgId: orgIds[0]!, orgIds };
+  const corps: { key: string; name: string; orgId: string }[] = [];
+  for (const c of picked) corps.push({ key: c.key, name: c.name, orgId: await createCorp(ctx, c) });
+  return { orgId: corps[0]!.orgId, orgIds: corps.map((c) => c.orgId), corps };
 }

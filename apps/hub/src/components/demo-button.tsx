@@ -16,8 +16,8 @@ export function DemoButton({ variant = 'secondary', set, only }: { variant?: 'pr
     setBusy(true);
     setError(null);
     try {
-      const { orgId } = await api<{ orgId: string }>('/demo', { method: 'POST', json: set ? { set, ...(only ? { only: [only.key] } : {}) } : undefined });
-      router.push(`/o/${orgId}/dashboard?demo=1`);
+      const { orgId, editors } = await api<{ orgId: string; editors?: { email: string }[] }>('/demo', { method: 'POST', json: set ? { set, ...(only ? { only: [only.key] } : {}) } : undefined });
+      router.push(`/o/${orgId}/dashboard?demo=1${editors?.length ? `&editors=${encodeURIComponent(editors.map((e) => e.email).join(','))}` : ''}`);
       router.refresh();
     } catch (e) {
       setError((e as ApiError).message ?? 'Không tạo được dữ liệu demo.');
