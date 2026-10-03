@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { coreTables as t } from '@nexture/db';
 import { createOrg, getOrg, slugAvailability, updateOrg } from '../src/orgs';
 import { changeRole, listMembers, removeMember } from '../src/members';
-import { acceptInvite, createInvite, listInvites, previewInvite, revokeInvite } from '../src/invites';
+import { acceptInvite, addMemberByEmail, claimPendingInvites, createInvite, listInvites, previewInvite, revokeInvite } from '../src/invites';
 import { getMe } from '../src/me';
 import { db, expectError, makeUser } from './helpers';
 
@@ -60,6 +60,28 @@ describe('organizations', () => {
 });
 
 describe('members and invites', () => {
+  it('Thêm thành viên: existing account joins at once, a new email joins at first sign-in', async () => {
+    const a = await makeUser('Admin');
+    const b = await makeUser('Có sẵn');
+    const org = await createOrg(a.ctx, { name: 'Thêm Thành Viên' });
+    expect(await addMemberByEmail(a.ctx, org.id, { email: b.email.toUpperCase(), role: 'VIEWER' })).toMatchObject({ status: 'ADDED' });
+    expect((await listMembers(a.ctx, org.id)).items.find((m) => m.userId === b.id)?.role).toBe('VIEWER');
+    await expectError(addMemberByEmail(a.ctx, org.id, { email: b.email, role: 'EDITOR' }), 'MEMBER_EXISTS');
+
+    const email = `moi-${Date.now()}@test.local`;
+    expect(await addMemberByEmail(a.ctx, org.id, { email, role: 'EDITOR' })).toMatchObject({ status: 'PENDING', email });
+    await expectError(addMemberByEmail(a.ctx, org.id, { email, role: 'VIEWER' }), 'MEMBER_EXISTS');
+    expect((await listInvites(a.ctx, org.id)).items.map((i) => i.email)).toEqual([email]);
+    await expectError(addMemberByEmail(b.ctx, org.id, { email: 'x@y.test', role: 'VIEWER' }), 'FORBIDDEN');
+
+    const c = await makeUser('Mới');
+    await db.update(t.user).set({ email }).where(eq(t.user.id, c.id));
+    await claimPendingInvites(db, { id: c.id, email: email.toUpperCase(), name: 'Mới' });
+    expect((await listMembers(a.ctx, org.id)).items.find((m) => m.userId === c.id)?.role).toBe('EDITOR');
+    expect((await listInvites(a.ctx, org.id)).items).toHaveLength(0);
+    await claimPendingInvites(db, { id: c.id, email, name: 'Mới' });
+  });
+
   it('UC-03: one-time invite link, role applied, link dies after use', async () => {
     const a = await makeUser('Admin');
     const b = await makeUser('Biên tập');

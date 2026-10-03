@@ -11,6 +11,7 @@ export type ActivityAction =
   | 'MEMBER_ROLE_CHANGED'
   | 'MEMBER_REMOVED'
   | 'MEMBER_JOINED'
+  | 'MEMBER_ADDED'
   | 'INVITE_CREATED'
   | 'INVITE_REVOKED'
   | 'MEDIA_UPLOADED'

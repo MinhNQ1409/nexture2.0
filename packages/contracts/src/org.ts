@@ -69,4 +69,10 @@ export const createInviteInput = z.object({
     .pipe(z.email().nullable()),
 });
 
+/** "Thêm thành viên": the person signs in with this email and lands in the org with this role. */
+export const addMemberInput = z.object({
+  role: orgRoleSchema,
+  email: z.string().trim().toLowerCase().pipe(z.email()),
+});
+
 export const changeRoleInput = z.object({ role: orgRoleSchema });

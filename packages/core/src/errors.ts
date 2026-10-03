@@ -13,6 +13,7 @@ export const ERRORS = {
   SLUG_LOCKED: [409, 'Không thể đổi đường dẫn sau khi hồ sơ đã lên Atlas.'],
   LAST_ADMIN: [409, 'Tổ chức cần ít nhất một Admin.'],
   ALREADY_MEMBER: [409, 'Bạn đã là thành viên của doanh nghiệp này.'],
+  MEMBER_EXISTS: [409, 'Người này đã là thành viên hoặc đang chờ tham gia doanh nghiệp.'],
   MEDIA_IN_USE: [409, 'Tư liệu đang được sử dụng. Hãy gỡ khỏi các nội dung trước.'],
   VALUE_NAME_TAKEN: [409, 'Giá trị này đã tồn tại.'],
   INVITE_INVALID: [410, 'Lời mời không còn hiệu lực.'],

@@ -1,9 +1,9 @@
 // Invite links: one-time use, 7-day expiry, optional email lock. docs/spec/06-hub-man-hinh.md §2.4, UC-03/UC-04.
 import { createHash, randomBytes } from 'node:crypto';
-import { and, desc, eq, gt, isNull } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import { coreTables as t } from '@nexture/db';
-import { createInviteInput } from '@nexture/contracts';
+import { addMemberInput, createInviteInput } from '@nexture/contracts';
 import { logActivity } from './activity';
 import { canOrg } from './authz';
 import { requireMember, type Ctx } from './context';
@@ -117,4 +117,54 @@ export async function acceptInvite(ctx: Ctx, token: string, userEmail: string) {
     await logActivity(tx, { organizationId: row.organizationId, actorId: ctx.actor.userId, action: 'MEMBER_JOINED', targetType: 'MEMBER', targetId: ctx.actor.userId, targetLabel: u?.name ?? null });
     return { orgId: row.organizationId };
   });
+}
+
+/** Pending additions never expire on their own; the admin removes them with "Thu hồi". */
+const PENDING_TTL_MS = 100 * 365 * 24 * 60 * 60 * 1000;
+
+/**
+ * POST /orgs/{id}/members: adds a member by email. An existing account joins at once;
+ * otherwise a pending entry waits and claimPendingInvites applies it at their first sign-in.
+ */
+export async function addMemberByEmail(ctx: Ctx, orgId: string, raw: unknown): Promise<{ status: 'ADDED' | 'PENDING'; email: string; role: string }> {
+  await requireInviteAdmin(ctx, orgId);
+  const input = parse(addMemberInput, raw);
+  return ctx.db.transaction(async (tx) => {
+    const [u] = await tx.select({ id: t.user.id, name: t.user.name }).from(t.user).where(eq(sql`lower(${t.user.email})`, input.email));
+    if (u) {
+      const [m] = await tx.select({ role: t.organizationMembers.role }).from(t.organizationMembers).where(and(eq(t.organizationMembers.organizationId, orgId), eq(t.organizationMembers.userId, u.id)));
+      if (m) fail('MEMBER_EXISTS');
+      await tx.insert(t.organizationMembers).values({ organizationId: orgId, userId: u.id, role: input.role });
+      await logActivity(tx, { organizationId: orgId, actorId: ctx.actor.userId, action: 'MEMBER_ADDED', targetType: 'MEMBER', targetId: u.id, targetLabel: u.name });
+      return { status: 'ADDED' as const, ...input };
+    }
+    const [pending] = await tx.select({ id: t.invites.id }).from(t.invites).where(and(eq(t.invites.organizationId, orgId), eq(t.invites.email, input.email), activeWhere()));
+    if (pending) fail('MEMBER_EXISTS');
+    const id = uuidv7();
+    await tx.insert(t.invites).values({
+      id,
+      organizationId: orgId,
+      tokenHash: hashToken(randomBytes(32).toString('base64url')),
+      role: input.role,
+      email: input.email,
+      expiresAt: new Date(Date.now() + PENDING_TTL_MS),
+      createdBy: ctx.actor.userId,
+    });
+    await logActivity(tx, { organizationId: orgId, actorId: ctx.actor.userId, action: 'MEMBER_ADDED', targetType: 'INVITE', targetId: id, targetLabel: input.email });
+    return { status: 'PENDING' as const, ...input };
+  });
+}
+
+/** Runs at every sign-in and sign-up: joins the user to each org that added their email. */
+export async function claimPendingInvites(db: Ctx['db'], user: { id: string; email: string; name: string }): Promise<void> {
+  const email = user.email.trim().toLowerCase();
+  const rows = await db.select().from(t.invites).where(and(eq(t.invites.email, email), activeWhere()));
+  for (const row of rows) {
+    await db.transaction(async (tx) => {
+      const [m] = await tx.select({ role: t.organizationMembers.role }).from(t.organizationMembers).where(and(eq(t.organizationMembers.organizationId, row.organizationId), eq(t.organizationMembers.userId, user.id)));
+      if (!m) await tx.insert(t.organizationMembers).values({ organizationId: row.organizationId, userId: user.id, role: row.role });
+      await tx.update(t.invites).set({ acceptedAt: new Date(), acceptedBy: user.id }).where(eq(t.invites.id, row.id));
+      if (!m) await logActivity(tx, { organizationId: row.organizationId, actorId: user.id, action: 'MEMBER_JOINED', targetType: 'MEMBER', targetId: user.id, targetLabel: user.name });
+    });
+  }
 }

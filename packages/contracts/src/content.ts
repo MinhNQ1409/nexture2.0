@@ -260,6 +260,7 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   MEMBER_ROLE_CHANGED: 'đã đổi vai trò của',
   MEMBER_REMOVED: 'đã gỡ thành viên',
   MEMBER_JOINED: 'đã tham gia',
+  MEMBER_ADDED: 'đã thêm thành viên',
   INVITE_CREATED: 'đã tạo lời mời',
   INVITE_REVOKED: 'đã thu hồi lời mời',
   MEDIA_UPLOADED: 'đã tải lên',

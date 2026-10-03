@@ -27,7 +27,8 @@ export function SignupForm({ next }: { next?: string }) {
     if (error) {
       return setErrors(error.code === 'USER_ALREADY_EXISTS' || error.status === 422 ? { email: 'Email đã được sử dụng.' } : { _: 'Đã có lỗi xảy ra. Vui lòng thử lại.' });
     }
-    window.location.href = safeNext(next, '/new-org');
+    // Home sends people who were added by email straight into their org, everyone else to /new-org.
+    window.location.href = safeNext(next, '/');
   }
 
   return (

@@ -1,8 +1,10 @@
 // Better Auth: email + password only (docs/spec/05-api-ghi-chu.md §7).
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { eq } from 'drizzle-orm';
 import { nextCookies } from 'better-auth/next-js';
 import { coreTables as t } from '@nexture/db';
+import { claimPendingInvites } from '@nexture/core';
 import { db } from './db';
 import { sendEmail } from './email';
 
@@ -45,6 +47,15 @@ export const auth = betterAuth({
         before: async (user) => ({
           data: { ...user, platformRole: adminEmails().includes(user.email.toLowerCase()) ? 'NEXTURE_ADMIN' : 'USER' },
         }),
+      },
+    },
+    // Sign-up and every sign-in open a session: that is when "Thêm thành viên" entries for this email take effect.
+    session: {
+      create: {
+        after: async (session) => {
+          const [u] = await db().select({ id: t.user.id, email: t.user.email, name: t.user.name }).from(t.user).where(eq(t.user.id, session.userId));
+          if (u) await claimPendingInvites(db(), u);
+        },
       },
     },
   },
