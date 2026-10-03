@@ -5,6 +5,27 @@ import { getT } from '@/lib/i18n';
 import { CompanyCard } from './company-card';
 import { RelatedCard } from './entity-view';
 import { SearchBox } from './search-box';
+import { HUB_URL, SITE_URL } from '@/lib/site';
+
+// Tells search engines that this site, the Hub and the brand name "NexTure" are one organisation.
+const JSON_LD = JSON.stringify([
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'NexTure',
+    alternateName: ['Executive NexTure', 'NexTure Hub', 'NexTure Culture Hub', 'NexTure Culture Atlas'],
+    url: SITE_URL,
+    logo: `${SITE_URL}/brand/nexture-logo.png`,
+    sameAs: [HUB_URL],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'NexTure Culture Atlas',
+    url: SITE_URL,
+    potentialAction: { '@type': 'SearchAction', target: `${SITE_URL}/search?q={q}`, 'query-input': 'required name=q' },
+  },
+]).replace(/</g, '\\u003c');
 
 // Rendered per request so builds never need the database; data itself is cached by tag in lib/queries.ts.
 export const dynamic = 'force-dynamic';
@@ -39,6 +60,7 @@ export default async function Home() {
   const B = (p: { title: string; href: string; children: React.ReactNode }) => <Block {...p} more={t.seeAll} />;
   return (
     <div className="flex flex-col gap-12">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON_LD }} />
       <section className="flex flex-col gap-4">
         <p className="text-micro-cap uppercase text-primary">NexTure · Culture Atlas</p>
         <h1 className="max-w-[900px] text-display-lg md:text-display-xl">Vietnam Enterprise Culture Atlas</h1>

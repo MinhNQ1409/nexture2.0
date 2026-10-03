@@ -6,6 +6,7 @@ import { getT } from '@/lib/i18n';
 import { LangSwitch } from './lang-switch';
 import { NavLink } from './nav-link';
 import { BrandLockup } from './brand';
+import { SITE_NAME, SITE_URL, VERIFICATION } from '@/lib/site';
 import './globals.css';
 
 const demo = process.env.DEMO_MODE === 'true';
@@ -13,8 +14,14 @@ const demo = process.env.DEMO_MODE === 'true';
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT();
   return {
-    title: 'Vietnam Enterprise Culture Atlas',
-    description: t.siteDesc,
+    metadataBase: new URL(SITE_URL),
+    title: { default: 'NexTure Culture Atlas · Văn hóa doanh nghiệp Việt Nam', template: '%s' },
+    description: `NexTure: ${t.siteDesc}`,
+    applicationName: 'NexTure',
+    keywords: ['NexTure', 'NexTure Culture Atlas', 'NexTure Hub', 'văn hóa doanh nghiệp', 'enterprise culture', 'Vietnam'],
+    openGraph: { type: 'website', siteName: SITE_NAME, locale: 'vi_VN', images: [{ url: '/brand/nexture-logo.png', width: 1309, height: 605, alt: 'NexTure' }] },
+    twitter: { card: 'summary' },
+    verification: { google: VERIFICATION.google, other: VERIFICATION.bing ? { 'msvalidate.01': VERIFICATION.bing } : undefined },
     ...(demo ? { robots: { index: false, follow: false } } : {}),
   };
 }
