@@ -11,8 +11,7 @@ export type Actor = { userId: string; platformRole: 'USER' | 'NEXTURE_ADMIN' };
 /** Where Hub tells Atlas to refresh after a publish change (08-cong-khai §8). Absent in tests. */
 export type AtlasNotifier = { baseUrl: string; secret: string };
 
-/** adminEmails: accounts treated as NexTure admins by email (NEXTURE_ADMIN_EMAILS), besides platformRole. */
-export type Ctx = { db: Db; actor: Actor; storage?: Storage; atlas?: AtlasNotifier; adminEmails?: string[] };
+export type Ctx = { db: Db; actor: Actor; storage?: Storage; atlas?: AtlasNotifier };
 
 export type DbOrTx = Db | Tx;
 

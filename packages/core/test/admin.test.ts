@@ -142,11 +142,6 @@ describe('nexture admin', () => {
     const { admin, org, ev, nexture } = await setup();
     await addSource(admin.ctx, 'events', org.id, ev.id, { title: 'Nguồn', url: 'https://x.vn', isPublic: true });
     await expectError(adminDeleteOrg(nexture.ctx, org.id, { confirmSlug: 'sai' }), 'VALIDATION_FAILED');
-    // A company with a NexTure admin among its members cannot be deleted (by role or by NEXTURE_ADMIN_EMAILS).
-    const [adminEmail] = await db.select({ email: t.user.email }).from(t.user).where(eq(t.user.id, admin.id));
-    await expectError(adminDeleteOrg({ ...nexture.ctx, adminEmails: [adminEmail!.email.toUpperCase()] }, org.id, { confirmSlug: org.slug }), 'ORG_PROTECTED');
-    expect((await adminGetOrg({ ...nexture.ctx, adminEmails: [adminEmail!.email] }, org.id)).protectedBy).toEqual([adminEmail!.email]);
-    expect((await adminGetOrg(nexture.ctx, org.id)).protectedBy).toEqual([]);
     await adminDeleteOrg(nexture.ctx, org.id, { confirmSlug: org.slug });
     expect(await db.select().from(t.organizations).where(eq(t.organizations.id, org.id))).toHaveLength(0);
     expect(await db.select().from(t.events).where(eq(t.events.organizationId, org.id))).toHaveLength(0);
