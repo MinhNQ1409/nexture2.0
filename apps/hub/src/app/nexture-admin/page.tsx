@@ -22,7 +22,12 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Doanh nghiệp" description={`${r.total} doanh nghiệp trên NexTure. Mở một doanh nghiệp để ẩn nội dung, khóa hoặc xóa.`} action={<DemoButton set="corps" />} />
+      <PageHeader title="Doanh nghiệp" description={`${r.total} doanh nghiệp trên NexTure. Mở một doanh nghiệp để ẩn nội dung, khóa hoặc xóa.`} action={
+          <div className="flex flex-wrap gap-2">
+            <DemoButton set="corps" only={{ key: 'vinamilk', name: 'Vinamilk' }} />
+            <DemoButton set="corps" />
+          </div>
+        } />
       <Form action="/nexture-admin" className="flex max-w-xl gap-2">
         <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md border border-hairline-strong bg-canvas-white px-3 focus-within:border-primary">
           <Search size={18} strokeWidth={1.5} className="shrink-0 text-ink-mute" aria-hidden />

@@ -5,6 +5,7 @@ import { uuidv7 } from 'uuidv7';
 import type { EventType } from '@nexture/contracts';
 import { coreTables as t } from '@nexture/db';
 import { logActivity } from './activity';
+import { AppError } from './errors';
 import type { Ctx } from './context';
 import { CORPS } from './demo-corps-data';
 import { logoSvg } from './demo';
@@ -149,9 +150,11 @@ async function createCorp(ctx: Ctx, c: CorpDemo): Promise<string> {
   return orgId;
 }
 
-/** POST /demo { set: 'corps' }: creates the three corporations for the caller (ADMIN of each); returns the first org id. */
-export async function createCorpDemos(ctx: Ctx): Promise<{ orgId: string; orgIds: string[] }> {
+/** POST /demo { set: 'corps', only?: ['vinamilk'] }: creates the corporations for the caller (ADMIN of each); returns the first org id. */
+export async function createCorpDemos(ctx: Ctx, only?: string[]): Promise<{ orgId: string; orgIds: string[] }> {
+  const picked = only?.length ? CORPS.filter((c) => only.includes(c.key)) : CORPS;
+  if (!picked.length) throw new AppError('VALIDATION_FAILED', { only });
   const orgIds: string[] = [];
-  for (const c of CORPS) orgIds.push(await createCorp(ctx, c));
+  for (const c of picked) orgIds.push(await createCorp(ctx, c));
   return { orgId: orgIds[0]!, orgIds };
 }
