@@ -21,7 +21,7 @@ type PageCtx = Ctx & { user: { id: string; name: string; email: string } };
 // One ctx object per request, so per-request caches keyed on it (orgOf) are shared by layout and page.
 const pageCtx = cache(async (): Promise<PageCtx | null> => {
   const s = await getSession();
-  return s ? { db: db(), actor: actorOf(s.user), user: s.user, storage: storage(), atlas: atlasNotifier() } : null;
+  return s ? { db: db(), actor: actorOf(s.user), user: s.user, storage: storage(), atlas: atlasNotifier(), adminEmails: adminEmails() } : null;
 });
 
 /** For server components: redirects to /login when signed out. */

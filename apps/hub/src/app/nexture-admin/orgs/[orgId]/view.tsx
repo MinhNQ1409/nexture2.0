@@ -24,6 +24,7 @@ type Org = {
   lockedAt: string | null;
   lockedReason: string | null;
   lockedBy: string | null;
+  protectedBy: string[];
   items: Item[];
 };
 
@@ -107,12 +108,17 @@ export function AdminOrgView({ initial }: { initial: Org }) {
                 Khóa doanh nghiệp
               </Button>
             )}
-            <Button variant="danger" disabled={busy} onClick={() => setAsk({ kind: 'delete' })}>
+            <Button variant="danger" disabled={busy || org.protectedBy.length > 0} onClick={() => setAsk({ kind: 'delete' })}>
               <Trash2 size={16} strokeWidth={1.5} aria-hidden />
               Xóa doanh nghiệp
             </Button>
           </div>
         </div>
+        {org.protectedBy.length > 0 && (
+          <p className="text-body-md text-ink-mute">
+            Không thể xóa: doanh nghiệp có thành viên là tài khoản Quản trị NexTure ({org.protectedBy.join(', ')}).
+          </p>
+        )}
         {org.hiddenAt && (
           <p className="text-body-md text-error">
             Hồ sơ bị ẩn ngày {day(org.hiddenAt)}

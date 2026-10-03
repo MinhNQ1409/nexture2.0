@@ -59,6 +59,17 @@ async function loadOrg(ctx: Ctx, orgId: string) {
   return o ?? fail('NOT_FOUND');
 }
 
+/** Members who are NexTure admins (by role or by NEXTURE_ADMIN_EMAILS); their companies cannot be deleted. */
+async function protectingAdmins(db: Ctx['db'], ctx: Ctx, orgId: string): Promise<string[]> {
+  const emails = (ctx.adminEmails ?? []).map((e) => e.toLowerCase());
+  const rows = await db
+    .select({ name: t.user.name, email: t.user.email, platformRole: t.user.platformRole })
+    .from(t.organizationMembers)
+    .innerJoin(t.user, eq(t.user.id, t.organizationMembers.userId))
+    .where(eq(t.organizationMembers.organizationId, orgId));
+  return rows.filter((r) => r.platformRole === 'NEXTURE_ADMIN' || emails.includes(r.email.toLowerCase())).map((r) => r.email);
+}
+
 /** Org header plus GET /admin/organizations/{orgId}/public-entities: content that is live, waiting, or hidden by NexTure. */
 export async function adminGetOrg(ctx: Ctx, orgId: string) {
   requireNextureAdmin(ctx.actor);
@@ -103,6 +114,7 @@ export async function adminGetOrg(ctx: Ctx, orgId: string) {
     lockedAt: o.lockedAt,
     lockedReason: o.lockedReason,
     lockedBy: nameOf(o.lockedBy),
+    protectedBy: await protectingAdmins(ctx.db, ctx, orgId),
     items,
   };
 }
@@ -202,6 +214,8 @@ export async function adminDeleteOrg(ctx: Ctx, orgId: string, raw: unknown) {
   await ctx.db.transaction(async (tx) => {
     const [o] = await tx.select().from(t.organizations).where(eq(t.organizations.id, orgId)).for('update');
     if (!o) return fail('NOT_FOUND');
+    const admins = await protectingAdmins(tx, ctx, orgId);
+    if (admins.length) fail('ORG_PROTECTED', { admins });
     if (confirmSlug !== o.slug) fail('VALIDATION_FAILED', { fields: { confirmSlug: 'Nhập đúng đường dẫn của doanh nghiệp để xác nhận' } });
     // Take everything off Atlas first (tombstones -> 410, public files queued for deletion).
     await tx.update(t.organizations).set({ atlasEnabled: false }).where(eq(t.organizations.id, orgId));
