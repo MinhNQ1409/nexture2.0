@@ -40,6 +40,8 @@ export function AdminOrgView({ initial }: { initial: Org }) {
   const [ask, setAsk] = useState<Ask | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Same rule as isProtectedOrgName in core: NexTure's own company cannot be deleted.
+  const isProtected = org.name.trim().toLowerCase() === 'nexture';
   const [notice, setNotice] = useState<string | null>(null);
 
   async function run(fn: () => Promise<unknown>, msg: string) {
@@ -107,12 +109,13 @@ export function AdminOrgView({ initial }: { initial: Org }) {
                 Khóa doanh nghiệp
               </Button>
             )}
-            <Button variant="danger" disabled={busy} onClick={() => setAsk({ kind: 'delete' })}>
+            <Button variant="danger" disabled={busy || isProtected} onClick={() => setAsk({ kind: 'delete' })}>
               <Trash2 size={16} strokeWidth={1.5} aria-hidden />
               Xóa doanh nghiệp
             </Button>
           </div>
         </div>
+        {isProtected && <p className="text-body-md text-ink-mute">Doanh nghiệp NexTure không thể bị xóa.</p>}
         {org.hiddenAt && (
           <p className="text-body-md text-error">
             Hồ sơ bị ẩn ngày {day(org.hiddenAt)}

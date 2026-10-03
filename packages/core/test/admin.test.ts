@@ -138,6 +138,14 @@ describe('nexture admin', () => {
     expect(await company(org.id)).toBeDefined();
   });
 
+  it('never deletes the company named NexTure', async () => {
+    const owner = await makeUser('Chủ');
+    const nexture = await makeUser('NexTure', 'NEXTURE_ADMIN');
+    const own = await createOrg(owner.ctx, { name: ' NexTure ' });
+    await expectError(adminDeleteOrg(nexture.ctx, own.id, { confirmSlug: own.slug }), 'ORG_PROTECTED');
+    expect((await getOrg(owner.ctx, own.id)).id).toBe(own.id);
+  });
+
   it('deletes a company and all its data after the slug is retyped', async () => {
     const { admin, org, ev, nexture } = await setup();
     await addSource(admin.ctx, 'events', org.id, ev.id, { title: 'Nguồn', url: 'https://x.vn', isPublic: true });

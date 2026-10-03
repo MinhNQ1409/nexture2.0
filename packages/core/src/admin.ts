@@ -59,6 +59,9 @@ async function loadOrg(ctx: Ctx, orgId: string) {
   return o ?? fail('NOT_FOUND');
 }
 
+/** NexTure's own company ("nexture", any case or spacing) can never be deleted. */
+export const isProtectedOrgName = (name: string) => name.trim().toLowerCase() === 'nexture';
+
 /** Org header plus GET /admin/organizations/{orgId}/public-entities: content that is live, waiting, or hidden by NexTure. */
 export async function adminGetOrg(ctx: Ctx, orgId: string) {
   requireNextureAdmin(ctx.actor);
@@ -202,6 +205,7 @@ export async function adminDeleteOrg(ctx: Ctx, orgId: string, raw: unknown) {
   await ctx.db.transaction(async (tx) => {
     const [o] = await tx.select().from(t.organizations).where(eq(t.organizations.id, orgId)).for('update');
     if (!o) return fail('NOT_FOUND');
+    if (isProtectedOrgName(o.name)) fail('ORG_PROTECTED');
     if (confirmSlug !== o.slug) fail('VALIDATION_FAILED', { fields: { confirmSlug: 'Nhập đúng đường dẫn của doanh nghiệp để xác nhận' } });
     // Take everything off Atlas first (tombstones -> 410, public files queued for deletion).
     await tx.update(t.organizations).set({ atlasEnabled: false }).where(eq(t.organizations.id, orgId));
