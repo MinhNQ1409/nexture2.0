@@ -113,11 +113,10 @@ export default async function Dashboard({
         <Card className="self-start lg:col-span-4">
           <h2 className="text-heading-md">Xem thử với dữ liệu mẫu</h2>
           <p className="mt-2 text-body-md text-ink-mute">
-            Tạo một doanh nghiệp demo có sẵn sự kiện, thành viên và hồ sơ trên
-            Culture Atlas để trải nghiệm mọi tính năng.
+            Nạp hồ sơ mẫu của Vinamilk, FPT và Vingroup, có sẵn sự kiện, câu
+            chuyện, con người và hồ sơ trên Culture Atlas.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <DemoButton />
             <DemoButton set="corps" />
           </div>
         </Card>
